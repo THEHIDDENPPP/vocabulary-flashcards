@@ -570,6 +570,19 @@ function save(){
     words.filter(w=>!w.id).forEach(saveWordToAPI);
   }
 }
+
+function loadLocalWords(){
+  const saved = localStorage.getItem('vv2_words');
+  if(saved){
+    try{
+      const parsed = JSON.parse(saved);
+      if(Array.isArray(parsed) && parsed.length){
+        words = parsed;
+      }
+    }catch(e){ console.warn('Failed to parse saved words', e); }
+  }
+}
+
 function tot(){document.getElementById('total-c').textContent=words.length;}
 
 function setFilter(f){
@@ -1597,13 +1610,27 @@ window.addEventListener('load',async ()=>{
     return;
   }
 
+  loadLocalWords();
+  build();uCounts();rCard();
+
   authToken=localStorage.getItem('auth_token');
   if(authToken){
+    try {
+      await loadWordsFromAPI();
+      document.getElementById('auth-panel').style.display='none';
+      build();uCounts();rCard();
+      setTab('flash');
+      return;
+    } catch (err) {
+      console.warn('Failed to load remote words, using local cache', err);
+    }
+  }
+
+  if(words.length){
     document.getElementById('auth-panel').style.display='none';
-    await loadWordsFromAPI();
     build();uCounts();rCard();
     setTab('flash');
-  }else{
+  } else {
     document.getElementById('auth-panel').style.display='flex';
   }
 });
