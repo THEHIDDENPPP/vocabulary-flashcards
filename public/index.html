@@ -350,10 +350,22 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 
 <script>
 // Initialize Supabase
-const SUPABASE_URL = 'https://emsmajorqfxifuefuwwq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtc21ham9ycWZ4aWZ1ZWZ1d3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1OTY1MDAsImV4cCI6MjA5MzE3MjUwMH0.2oZFP5LGiCtQu32JaMhYdggK1rx2NpR_X6E2xXWib3k';
 const { createClient } = window.supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let SUPABASE_URL = '';
+let SUPABASE_ANON_KEY = '';
+let supabaseClient = null;
+
+async function initSupabaseClient() {
+  const res = await fetch('/api/config');
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Unable to load Supabase configuration.');
+  }
+  const config = await res.json();
+  SUPABASE_URL = config.url;
+  SUPABASE_ANON_KEY = config.anonKey;
+  supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
 
 const DEFS=[
   {word:"Immaterial",def:"Not important or relevant; doesn't matter.",ex:"The time of arrival is immaterial — what matters is that you come prepared.",trick:"'Im' (not) + 'material' (matter). Something immaterial simply doesn't MATTER."},
@@ -1437,6 +1449,15 @@ DEFS.push(...GRE_EXTRA);
 
 // Check if already logged in - Initialize UI
 window.addEventListener('load',async ()=>{
+  try {
+    await initSupabaseClient();
+  } catch (err) {
+    console.error('Supabase init failed:', err);
+    document.getElementById('auth-panel').style.display='none';
+    alert('Unable to initialize Supabase. Check site configuration.');
+    return;
+  }
+
   authToken=localStorage.getItem('auth_token');
   if(authToken){
     document.getElementById('auth-panel').style.display='none';
@@ -1493,14 +1514,19 @@ async function signInWithGoogle(){
 
 // Handle OAuth callback on page load
 (async ()=>{
-  const { data: { session }, error } = await supabaseClient.auth.getSession();
-  if(session){
-    authToken=session.access_token;
-    localStorage.setItem('auth_token',authToken);
-    document.getElementById('auth-panel').style.display='none';
-    await loadWordsFromAPI();
-    build();uCounts();rCard();
-    setTab('flash');
+  try {
+    if (!supabaseClient) await initSupabaseClient();
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if(session){
+      authToken=session.access_token;
+      localStorage.setItem('auth_token',authToken);
+      document.getElementById('auth-panel').style.display='none';
+      await loadWordsFromAPI();
+      build();uCounts();rCard();
+      setTab('flash');
+    }
+  } catch (err) {
+    console.error('OAuth callback init failed:', err);
   }
 })();
 </script>
