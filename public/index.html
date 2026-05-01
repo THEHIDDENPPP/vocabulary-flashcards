@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocab Vault</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f0e0c;--surface:#1a1916;--card:#211f1b;--border:#2e2c27;--border2:#3d3a33;--text:#e8e2d4;--muted:#7a7468;--accent:#e8a838;--accent2:#c4773a;--green:#4caf7d;--yellow:#e8c84a;--red:#e05a4a;--known:#1a2e20;--known-b:#2d5c38;--somewhat:#2a2510;--somewhat-b:#6b5c1a;--unknown:#2a1210;--unknown-b:#6b2a1a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden}
+.app{display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px 14px 60px}
+header{text-align:center;margin-bottom:18px;padding-top:4px}
+.logo{font-family:'Lora',serif;font-size:clamp(1.4rem,5vw,1.9rem);font-weight:700;color:var(--text)}
+.logo span{color:var(--accent);font-style:italic}
+.tagline{font-size:0.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+/* TABS */
+.tabs{display:flex;border:1px solid var(--border2);margin-bottom:16px;background:var(--surface)}
+.tab{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.1em;text-transform:uppercase;border:none;background:transparent;color:var(--muted);padding:9px 14px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.tab.active{background:var(--accent);color:var(--bg);font-weight:500}
+.tab:hover:not(.active){color:var(--text);background:var(--border)}
+/* FILTER */
+.filter-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;justify-content:center;width:100%;max-width:500px}
+.fbtn{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--border2);background:transparent;color:var(--muted);padding:5px 10px;cursor:pointer;transition:all .15s}
+.fbtn:hover{color:var(--text)}
+.fbtn.f-all.on{border-color:var(--accent);color:var(--accent);background:rgba(232,168,56,.08)}
+.fbtn.f-known.on{border-color:var(--green);color:var(--green);background:rgba(76,175,125,.08)}
+.fbtn.f-somewhat.on{border-color:var(--yellow);color:var(--yellow);background:rgba(232,200,74,.08)}
+.fbtn.f-unknown.on{border-color:var(--red);color:var(--red);background:rgba(224,90,74,.08)}
+.fc{font-size:.55rem;opacity:.7;margin-left:2px}
+/* PROGRESS */
+.pw{width:100%;max-width:500px;margin-bottom:3px}
+.pb{height:2px;background:var(--border)}
+.pf{height:100%;background:var(--accent);transition:width .4s}
+.pl{font-size:.58rem;color:var(--muted);letter-spacing:.07em;text-align:right;margin-top:3px;margin-bottom:12px}
+/* CARD */
+.cw{width:100%;max-width:500px;perspective:1200px;cursor:pointer;margin-bottom:14px}
+.ci{position:relative;width:100%;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.cw.flipped .ci{transform:rotateY(180deg)}
+.cf{backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--border2);padding:clamp(18px,4vw,28px) clamp(16px,4vw,24px);width:100%;min-height:200px;display:flex;flex-direction:column;justify-content:center}
+.cb{position:absolute;top:0;left:0;transform:rotateY(180deg)}
+.ctag{font-size:.57rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.ctag::before,.ctag::after{content:'';flex:1;height:1px;background:var(--border)}
+.wfront{font-family:'Lora',serif;font-size:clamp(1.5rem,5.5vw,2.8rem);font-weight:700;line-height:1.15;color:var(--text);text-align:center;padding:clamp(10px,2.5vw,20px) 0;word-break:break-word}
+.hint{font-size:.58rem;color:var(--muted);text-align:center;margin-top:8px;letter-spacing:.07em}
+/* Back */
+.wlabel{font-family:'Lora',serif;font-size:clamp(.9rem,2.5vw,1.25rem);font-weight:600;color:var(--accent);margin-bottom:8px;font-style:italic;word-break:break-word}
+.deftext{font-size:clamp(.78rem,2.1vw,.92rem);line-height:1.65;color:var(--text);margin-bottom:10px}
+.slabel{font-size:.56rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;margin-top:10px}
+.extext{font-family:'Lora',serif;font-style:italic;font-size:clamp(.76rem,1.9vw,.86rem);color:#b8ad98;line-height:1.6;padding-left:9px;border-left:2px solid var(--accent2)}
+.tbox{background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.18);padding:9px 12px;margin-top:3px}
+.ttext{font-size:clamp(.73rem,1.9vw,.82rem);line-height:1.55;color:#c8bfa8}
+/* NAV */
+.nav{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.nb{font-family:'JetBrains Mono',monospace;font-size:1rem;border:1px solid var(--border2);background:transparent;color:var(--muted);width:36px;height:36px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nb:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.nb:disabled{opacity:.25;cursor:not-allowed}
+.nc{font-size:.66rem;color:var(--muted);letter-spacing:.1em;min-width:68px;text-align:center}
+/* CATEGORY */
+.catrow{display:flex;gap:7px;width:100%;max-width:500px;margin-bottom:18px}
+.catbtn{flex:1;font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.05em;padding:9px 4px;border:1px solid;cursor:pointer;transition:all .15s;line-height:1.3;text-align:center;background:transparent}
+.catbtn.known{border-color:var(--known-b);color:var(--green)}
+.catbtn.somewhat{border-color:var(--somewhat-b);color:var(--yellow)}
+.catbtn.unknown{border-color:var(--unknown-b);color:var(--red)}
+.catbtn.known:hover,.catbtn.sel-known{background:var(--known)}
+.catbtn.somewhat:hover,.catbtn.sel-somewhat{background:var(--somewhat)}
+.catbtn.unknown:hover,.catbtn.sel-unknown{background:var(--unknown)}
+.catbtn.sel-known{border-color:var(--green)}
+.catbtn.sel-somewhat{border-color:var(--yellow)}
+.catbtn.sel-unknown{border-color:var(--red)}
+.clabel{display:block;font-size:.68rem;margin-bottom:1px}
+.csub{display:block;font-size:.53rem;opacity:.6;letter-spacing:.03em}
+/* QUIZ */
+.qcard{width:100%;max-width:500px;background:var(--card);border:1px solid var(--border2);padding:clamp(18px,4vw,26px);margin-bottom:12px}
+.qword{font-family:'Lora',serif;font-size:clamp(1.3rem,4.5vw,2rem);font-weight:700;text-align:center;padding:8px 0 4px;word-break:break-word}
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%;max-width:500px;margin-bottom:10px}
+.obtn{font-family:'JetBrains Mono',monospace;font-size:.7rem;border:1px solid var(--border2);background:var(--surface);color:var(--text);padding:11px 9px;cursor:pointer;transition:all .15s;line-height:1.45;text-align:left}
+.obtn:hover:not(:disabled){border-color:var(--accent);background:rgba(232,168,56,.06)}
+.obtn.correct{border-color:var(--green)!important;background:rgba(76,175,125,.12)!important;color:var(--green)!important}
+.obtn.wrong{border-color:var(--red)!important;background:rgba(224,90,74,.1)!important;color:var(--red)!important}
+.obtn:disabled{cursor:default}
+.fb{height:20px;font-size:.7rem;letter-spacing:.06em;text-align:center;font-weight:500;margin-bottom:3px}
+.fb.ok{color:var(--green)}.fb.bad{color:var(--red)}
+.srow{display:flex;gap:14px;font-size:.62rem;color:var(--muted);letter-spacing:.07em;margin-bottom:12px}
+.sv{color:var(--text);font-weight:500}
+/* MANAGE */
+.mwrap{width:100%;max-width:500px}
+.mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.mtitle{font-family:'Lora',serif;font-size:.95rem;font-style:italic;color:var(--accent)}
+.addbtn{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--accent);background:transparent;color:var(--accent);padding:6px 12px;cursor:pointer;transition:all .15s}
+.addbtn:hover{background:var(--accent);color:var(--bg)}
+.wlist{display:flex;flex-direction:column;gap:5px;max-height:58vh;overflow-y:auto;padding-right:3px}
+.wlist::-webkit-scrollbar{width:3px}.wlist::-webkit-scrollbar-thumb{background:var(--border2)}
+.witem{display:flex;align-items:center;gap:7px;padding:9px 11px;background:var(--surface);border:1px solid var(--border);transition:border-color .15s}
+.witem:hover{border-color:var(--border2)}
+.wiw{font-family:'Lora',serif;font-style:italic;font-size:.82rem;color:var(--accent);flex-shrink:0;width:clamp(80px,22%,120px);word-break:break-word}
+.wid{font-size:.68rem;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wic{font-size:.53rem;padding:2px 5px;flex-shrink:0}
+.wic.known{background:var(--known);color:var(--green);border:1px solid var(--known-b)}
+.wic.somewhat{background:var(--somewhat);color:var(--yellow);border:1px solid var(--somewhat-b)}
+.wic.unknown{background:var(--unknown);color:var(--red);border:1px solid var(--unknown-b)}
+.wic.none{background:var(--border);color:var(--muted);border:1px solid var(--border2)}
+.wia{display:flex;gap:3px;flex-shrink:0}
+.ibtn{font-size:.72rem;border:1px solid var(--border2);background:transparent;color:var(--muted);width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.ibtn:hover{color:var(--text)}
+.ibtn.ed:hover{color:var(--accent);border-color:var(--accent)}
+.ibtn.dl:hover{color:var(--red);border-color:var(--red)}
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:100;padding:14px}
+.md{background:var(--card);border:1px solid var(--border2);padding:22px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.mt{font-family:'Lora',serif;font-size:1rem;font-weight:600;color:var(--accent);margin-bottom:16px;font-style:italic}
+.fi{margin-bottom:12px}
+.fi label{display:block;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.fi input,.fi textarea{width:100%;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.78rem;padding:8px 11px;outline:none;transition:border-color .15s;resize:vertical}
+.fi input:focus,.fi textarea:focus{border-color:var(--accent)}
+.fi textarea{min-height:65px;line-height:1.5}
+.macts{display:flex;gap:7px;justify-content:flex-end;margin-top:16px}
+.mbtn{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;border:1px solid;padding:7px 16px;cursor:pointer;transition:all .15s}
+.mbtn.p{border-color:var(--accent);color:var(--accent);background:transparent}
+.mbtn.p:hover{background:var(--accent);color:var(--bg)}
+.mbtn.c{border-color:var(--border2);color:var(--muted);background:transparent}
+.mbtn.c:hover{color:var(--text)}
+.empty{text-align:center;padding:36px 20px;color:var(--muted);font-size:.76rem;line-height:1.9}
+.hidden{display:none!important}
+
+/* ── IMPORT TAB ── */
+.imp-tab{color:var(--accent)!important;border-left:1px solid var(--border2)}
+.imp-wrap{width:100%;max-width:500px}
+.imp-hero{text-align:center;margin-bottom:22px;padding:20px 0 10px}
+.imp-icon{font-size:2rem;color:var(--accent);margin-bottom:8px;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.08)}}
+.imp-title{font-family:'Lora',serif;font-size:1.2rem;font-weight:700;color:var(--text);font-style:italic}
+.imp-sub{font-size:.65rem;color:var(--muted);letter-spacing:.07em;margin-top:5px}
+.imp-methods{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+.imp-card{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;background:var(--surface);border:1px solid var(--border2);cursor:pointer;transition:all .2s;text-align:center;user-select:none}
+.imp-card:hover{border-color:var(--accent);background:rgba(232,168,56,.06);transform:translateY(-2px)}
+.imp-card:active{transform:translateY(0)}
+.imp-card-icon{font-size:1.6rem;margin-bottom:6px;line-height:1}
+.imp-card-label{font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text);font-weight:500}
+.imp-card-sub{font-size:.57rem;color:var(--muted);margin-top:3px;letter-spacing:.03em}
+/* Status */
+.imp-status{display:flex!important;flex-direction:column;align-items:center;gap:14px;padding:28px 20px;background:var(--surface);border:1px solid var(--border2);margin-bottom:14px}
+.imp-spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.imp-status-text{font-size:.72rem;color:var(--muted);letter-spacing:.07em;text-align:center}
+.imp-hint{display:flex;gap:8px;align-items:flex-start;background:rgba(232,168,56,.05);border:1px solid rgba(232,168,56,.15);padding:11px 14px;font-size:.64rem;color:var(--muted);line-height:1.6;margin-top:4px}
+.imp-hint-icon{color:var(--accent);flex-shrink:0;font-size:.8rem;margin-top:1px}
+/* Preview modal */
+.imp-preview-modal{max-height:85vh;display:flex;flex-direction:column}
+.imp-preview-meta{font-size:.65rem;color:var(--muted);letter-spacing:.07em;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.imp-preview-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:16px;padding-right:3px;max-height:50vh}
+.imp-preview-list::-webkit-scrollbar{width:3px}.imp-preview-list::-webkit-scrollbar-thumb{background:var(--border2)}
+.imp-pword{background:var(--surface);border:1px solid var(--border);padding:10px 12px;display:flex;align-items:flex-start;gap:8px}
+.imp-pword-check{flex-shrink:0;margin-top:2px;accent-color:var(--accent);width:14px;height:14px;cursor:pointer}
+.imp-pword-info{flex:1;min-width:0}
+.imp-pword-w{font-family:'Lora',serif;font-style:italic;color:var(--accent);font-size:.88rem;margin-bottom:3px}
+.imp-pword-d{font-size:.72rem;color:var(--text);line-height:1.5}
+.imp-pword-e{font-size:.67rem;color:var(--muted);font-style:italic;margin-top:3px;line-height:1.4}
+.imp-pword-t{font-size:.65rem;color:#c8a050;margin-top:3px;padding:4px 7px;background:rgba(232,168,56,.07);border:1px solid rgba(232,168,56,.15);line-height:1.4}
+.imp-pword-dup{font-size:.58rem;background:rgba(232,168,56,.1);color:var(--accent);padding:2px 6px;border:1px solid rgba(232,168,56,.25);margin-left:6px;flex-shrink:0}
+.imp-preview-actions{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-shrink:0;border-top:1px solid var(--border);padding-top:12px}
+.imp-sel-all{font-size:.62rem;color:var(--muted);cursor:pointer;letter-spacing:.06em;background:transparent;border:none;text-decoration:underline;text-underline-offset:3px}
+.imp-sel-all:hover{color:var(--text)}
+.imp-err{background:rgba(224,90,74,.08);border:1px solid rgba(224,90,74,.3);padding:12px 14px;font-size:.73rem;color:var(--red);line-height:1.6;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">Vocab<span>Vault</span></div>
+  <div class="tagline">Your personal word library · <span id="total-c"></span> words</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="setTab('flash')">Flashcard</button>
+  <button class="tab" onclick="setTab('quiz')">Quiz</button>
+  <button class="tab" onclick="setTab('manage')">Manage</button>
+  <button class="tab imp-tab" onclick="setTab('import')">⊕ Import</button>
+</div>
+
+<div class="filter-bar" id="fbar">
+  <button class="fbtn f-all on" onclick="setFilter('all')">All <span class="fc" id="fc-all"></span></button>
+  <button class="fbtn f-known" onclick="setFilter('known')">✓ Known <span class="fc" id="fc-known"></span></button>
+  <button class="fbtn f-somewhat" onclick="setFilter('somewhat')">~ Somewhat <span class="fc" id="fc-somewhat"></span></button>
+  <button class="fbtn f-unknown" onclick="setFilter('unknown')">✗ Review <span class="fc" id="fc-unknown"></span></button>
+</div>
+
+<div class="pw" id="pwrap">
+  <div class="pb"><div class="pf" id="pfill" style="width:0%"></div></div>
+  <div class="pl" id="plabel">0 / 0</div>
+</div>
+
+<!-- FLASH -->
+<div id="tab-flash">
+  <div class="cw" id="cw" onclick="flipCard()">
+    <div class="ci" id="ci">
+      <div class="cf">
+        <div class="ctag">word</div>
+        <div class="wfront" id="fw">—</div>
+        <div class="hint">tap to reveal ↓</div>
+      </div>
+      <div class="cf cb">
+        <div class="ctag">definition</div>
+        <div class="wlabel" id="bw"></div>
+        <div class="deftext" id="bd"></div>
+        <div class="slabel">Example in daily use</div>
+        <div class="extext" id="be"></div>
+        <div class="slabel" style="margin-top:12px">Memory trick 🧠</div>
+        <div class="tbox"><span class="ttext" id="bt"></span></div>
+      </div>
+    </div>
+  </div>
+  <div class="nav">
+    <button class="nb" id="pb" onclick="prevC()">←</button>
+    <span class="nc" id="nc">1/1</span>
+    <button class="nb" id="nb2" onclick="nextC()">→</button>
+  </div>
+  <div class="catrow">
+    <button class="catbtn known" id="ck" onclick="mark('known')"><span class="clabel">✓ Known</span><span class="csub">got it!</span></button>
+    <button class="catbtn somewhat" id="cs" onclick="mark('somewhat')"><span class="clabel">~ Somewhat</span><span class="csub">getting there</span></button>
+    <button class="catbtn unknown" id="cu" onclick="mark('unknown')"><span class="clabel">✗ Review</span><span class="csub">need practice</span></button>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="tab-quiz" class="hidden">
+  <div class="srow"><span>✓ <span class="sv" id="sqc">0</span></span><span>✗ <span class="sv" id="sqw">0</span></span><span>Left: <span class="sv" id="sql">0</span></span></div>
+  <div class="qcard"><div class="ctag">what does this mean?</div><div class="qword" id="qw">—</div></div>
+  <div class="fb" id="fb"></div>
+  <div class="qopts" id="qo"></div>
+</div>
+
+<!-- MANAGE -->
+<div id="tab-manage" class="hidden mwrap">
+  <div class="mhead"><div class="mtitle">Your Word Library</div><button class="addbtn" onclick="openM()">+ Add Word</button></div>
+  <div class="wlist" id="wl"></div>
+</div>
+
+<!-- IMPORT -->
+<div id="tab-import" class="hidden imp-wrap">
+  <div class="imp-hero">
+    <div class="imp-icon">◈</div>
+    <div class="imp-title">Smart Import</div>
+    <div class="imp-sub">AI reads your notes and builds flashcards automatically</div>
+  </div>
+
+  <div class="imp-methods">
+
+    <label class="imp-card" id="drop-photo">
+      <input type="file" id="file-photo" accept="image/*" capture="environment" onchange="handleImport(this,'photo')" style="display:none"/>
+      <div class="imp-card-icon">📷</div>
+      <div class="imp-card-label">Camera / Photo</div>
+      <div class="imp-card-sub">Snap your notebook page</div>
+    </label>
+
+    <label class="imp-card" id="drop-img">
+      <input type="file" id="file-img" accept="image/*" onchange="handleImport(this,'image')" style="display:none"/>
+      <div class="imp-card-icon">🖼</div>
+      <div class="imp-card-label">Upload Image</div>
+      <div class="imp-card-sub">JPG, PNG, WEBP, GIF</div>
+    </label>
+
+    <label class="imp-card" id="drop-pdf">
+      <input type="file" id="file-pdf" accept=".pdf" onchange="handleImport(this,'pdf')" style="display:none"/>
+      <div class="imp-card-icon">📄</div>
+      <div class="imp-card-label">PDF</div>
+      <div class="imp-card-sub">Any vocabulary PDF</div>
+    </label>
+
+    <label class="imp-card" id="drop-doc">
+      <input type="file" id="file-doc" accept=".doc,.docx" onchange="handleImport(this,'doc')" style="display:none"/>
+      <div class="imp-card-icon">📝</div>
+      <div class="imp-card-label">Word Doc</div>
+      <div class="imp-card-sub">.doc or .docx</div>
+    </label>
+
+    <label class="imp-card" id="drop-xl">
+      <input type="file" id="file-xl" accept=".xls,.xlsx,.csv" onchange="handleImport(this,'excel')" style="display:none"/>
+      <div class="imp-card-icon">📊</div>
+      <div class="imp-card-label">Excel / CSV</div>
+      <div class="imp-card-sub">.xlsx, .xls, .csv</div>
+    </label>
+
+    <label class="imp-card" id="drop-txt">
+      <input type="file" id="file-txt" accept=".txt" onchange="handleImport(this,'text')" style="display:none"/>
+      <div class="imp-card-icon">🗒</div>
+      <div class="imp-card-label">Plain Text</div>
+      <div class="imp-card-sub">.txt word lists</div>
+    </label>
+
+  </div>
+
+  <div class="imp-status hidden" id="imp-status">
+    <div class="imp-spinner"></div>
+    <div class="imp-status-text" id="imp-status-text">Reading your file…</div>
+  </div>
+
+  <div class="imp-hint">
+    <span class="imp-hint-icon">ℹ</span>
+    Works best with: handwritten notes, vocab lists (word → definition), one word per line, or tables with word/definition columns.
+  </div>
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="mo hidden" id="mov" onclick="closeOut(event)">
+  <div class="md">
+    <div class="mt" id="mtitle">Add New Word</div>
+    <div class="fi"><label>Word *</label><input id="mw" placeholder="e.g. Ephemeral"/></div>
+    <div class="fi"><label>Definition *</label><textarea id="mdef" placeholder="What it means..."></textarea></div>
+    <div class="fi"><label>Example sentence</label><textarea id="mex" placeholder="A real-world sentence..."></textarea></div>
+    <div class="fi"><label>Memory trick</label><textarea id="mtr" placeholder="A fun way to remember it..."></textarea></div>
+    <div class="macts"><button class="mbtn c" onclick="closeM()">Cancel</button><button class="mbtn p" onclick="saveW()">Save</button></div>
+  </div>
+</div>
+
+<!-- IMPORT PREVIEW MODAL -->
+<div class="mo hidden" id="imp-preview-overlay" onclick="closeImpPreview(event)">
+  <div class="md imp-preview-modal">
+    <div class="mt">Review Extracted Words</div>
+    <div class="imp-preview-meta" id="imp-preview-meta"></div>
+    <div class="imp-preview-list" id="imp-preview-list"></div>
+    <div class="imp-preview-actions">
+      <button class="mbtn c" onclick="document.getElementById('imp-preview-overlay').classList.add('hidden')">Cancel</button>
+      <button class="mbtn p" id="imp-add-btn" onclick="addExtractedWords()">Add All to Library</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFS=[
+  {word:"Immaterial",def:"Not important or relevant; doesn't matter.",ex:"The time of arrival is immaterial — what matters is that you come prepared.",trick:"'Im' (not) + 'material' (matter). Something immaterial simply doesn't MATTER."},
+  {word:"Moderate",def:"Middle ground; neither too much nor too little; to keep in control.",ex:"She ate a moderate portion of dessert — just enough to satisfy, not overdo.",trick:"'Moderate' has 'mode' in it — mode is the middle value in statistics. Middle = moderate."},
+  {word:"Incipient",def:"Just beginning to happen; in an early, emerging stage.",ex:"The doctor spotted incipient signs of a cold before I even felt sick.",trick:"'Incipient' starts with 'inci-' like 'incident' — an incident just starting to unfold."},
+  {word:"Nascent",def:"Just coming into existence; newly formed and developing.",ex:"The nascent tech startup had three employees but enormous ambition.",trick:"'Nascent' is from Latin 'nasci' (to be born). A nascent idea is being BORN right now."},
+  {word:"Inconsequential",def:"Not important; having no significant effect or impact.",ex:"Don't stress over inconsequential details — keep your eye on the big picture.",trick:"'In' (not) + 'consequential' (having consequences). No consequence = inconsequential."},
+  {word:"Immanent",def:"Existing within something as a natural quality; built-in; inherent.",ex:"The desire to connect with others feels immanent in human nature.",trick:"'Immanent' — 'I'm IN it'. The quality lives INSIDE the thing itself."},
+  {word:"Imminent",def:"About to happen very soon; impending.",ex:"With dark clouds gathering, a storm seemed imminent.",trick:"'Imm-IN-ent' — danger is IN your face right now, about to hit. Close = imminent."},
+  {word:"Conjecture",def:"A guess or conclusion formed without complete proof or evidence.",ex:"His claim that she quit was pure conjecture — nobody actually knew.",trick:"'Ject' = throw (like 'eject'). Conjecture = throwing guesses together without proof."},
+  {word:"Abstain",def:"To restrain yourself deliberately from doing or having something.",ex:"She decided to abstain from social media during exam week.",trick:"'Ab' (away) + 'stain' — you stay away to keep yourself stain-free from the habit."},
+  {word:"Accentuate",def:"To make a feature more noticeable; to emphasize or highlight.",ex:"She wore bold earrings to accentuate her outfit.",trick:"'Accent' is right there! An accent mark emphasizes a letter — accentuate = put the accent ON."},
+  {word:"Acclaim",def:"To praise someone or something enthusiastically and publicly.",ex:"The film was acclaimed by critics as one of the decade's best.",trick:"'Ac-CLAIM' — to claim loudly and publicly that something is GREAT."},
+  {word:"Accord",def:"A mutual agreement or treaty between parties.",ex:"The two countries signed an accord to end the border dispute.",trick:"'Accord' is like a musical chord — different notes coming TOGETHER in harmony = agreement."},
+  {word:"Aghast",def:"Struck with shock and horror; filled with dismay.",ex:"She was aghast when she saw the bill — it was three times what she expected.",trick:"'Aghast' sounds like 'a ghost' appeared. You freeze in terror. That's aghast."},
+  {word:"Allay",def:"To reduce or calm a negative feeling such as fear or worry.",ex:"The doctor's calm tone helped allay her anxiety before surgery.",trick:"'Allay' sounds like 'lay down' — you lay fears down to rest. Calm them to sleep."},
+  {word:"Altruistic",def:"Unselfishly concerned with the welfare of others; selfless.",ex:"His altruistic act of donating his bonus to charity surprised his colleagues.",trick:"'Altru' from Latin 'alter' (other). Altruistic = living entirely for the OTHER person."},
+  {word:"Ambivalent",def:"Having mixed, conflicting feelings about something simultaneously.",ex:"I feel ambivalent about moving abroad — excited but also terrified.",trick:"'Ambi' = both. Like ambidextrous (both hands), ambivalent = feeling BOTH ways at once."},
+  {word:"Ameliorate",def:"To make a bad or unsatisfactory situation better; to improve.",ex:"The new policy was designed to ameliorate poverty in rural communities.",trick:"'Amelio' sounds like 'a million' — ameliorate = make things a MILLION times better."},
+  {word:"Amenable",def:"Open to suggestions; willing to be persuaded or to agree.",ex:"My boss was amenable to letting us work from home on Fridays.",trick:"'A-MEN-able' — you say AMEN (yes, I agree!). Amenable = agreeable."},
+  {word:"Anecdotal",def:"Based on personal stories or individual accounts rather than solid data.",ex:"His evidence was purely anecdotal — just his cousin's experience, not a proper study.",trick:"'Anec-DOTE' — a dote is a little story. Anecdotal = based on small personal stories."},
+  {word:"Animosity",def:"Strong hatred, active hostility or dislike toward someone.",ex:"Years of competition created deep animosity between the two teams.",trick:"'Animo' sounds like 'animal' — animosity is when feelings turn animal-wild with hatred."},
+  {word:"Antagonistic",def:"Hostile; actively opposing someone or something.",ex:"He was antagonistic toward any new idea, shooting them all down immediately.",trick:"The antagonist in a story ALWAYS fights against the hero. Antagonistic = the fighter against."},
+  {word:"Appall",def:"To greatly shock and horrify someone.",ex:"The condition of the abandoned building appalled the health inspectors.",trick:"'Appall' sounds like 'a pall' — a dark cloth over a coffin. Appalling = casting a dark shadow of horror."},
+  {word:"Appease",def:"To pacify or calm someone, typically by giving them what they want.",ex:"He bought flowers to appease his upset wife after missing dinner.",trick:"'Appease' = 'a peace'. You give something to CREATE peace. Appease = peace by giving in."},
+  {word:"Bias",def:"A prejudice in favour of or against something, often without fair basis.",ex:"The journalist was accused of having a bias toward one political party.",trick:"A ball on a slanted surface naturally rolls one way. Bias = your mind TILTS one direction."},
+  {word:"Blatant",def:"Very obvious; done openly without any attempt to hide it.",ex:"It was a blatant lie — everyone in the room knew the truth.",trick:"'BLAT-ant' — like blaring a horn loudly. A blatant act makes a HUGE, loud, obvious noise."},
+  {word:"Bleak",def:"Lacking hope or warmth; cold, grim and depressing.",ex:"The job market looked bleak for new graduates that year.",trick:"'Bleak' sounds like 'black' + 'leak' — everything is dark and draining away. Empty."},
+  {word:"Blunder",def:"A careless, stupid mistake caused by inattention.",ex:"Calling the client by the wrong name was a major blunder.",trick:"'Blunder' rhymes with 'thunder' — a loud, crashing mistake you can't hide."},
+  {word:"Underpins",def:"To support something as a base or foundation.",ex:"Trust underpins every successful long-term relationship.",trick:"Literal! 'Under' + 'pins' — pins placed UNDER a structure hold it up from below."},
+  {word:"Inscrutable",def:"Impossible to understand or interpret; mysterious, unreadable.",ex:"His inscrutable expression gave nothing away during the entire negotiation.",trick:"'In' (not) + 'scrutin' (examine, like scrutinize). Cannot be scrutinised. A locked vault."},
+  {word:"Austerity",def:"Strict economic policies to cut spending and reduce a budget deficit.",ex:"During austerity, the government cut public services and froze public sector pay.",trick:"'Auster-ity' — 'austere' means harsh and strict. Austerity = harsh financial strictness."},
+  {word:"Arduous",def:"Involving great effort and endurance; difficult and tiring.",ex:"Climbing Everest is an arduous journey requiring months of preparation.",trick:"'Ard' sounds like 'HARD'. Arduous = hard, exhausting, demanding work."},
+  {word:"Onerous",def:"Involving a great deal of effort, trouble or burden.",ex:"Managing 50 employees alone was an onerous responsibility.",trick:"'Onerous' — the burden is ON-EROUS, meaning it weighs ON you. Heavy duty."},
+  {word:"Venal",def:"Susceptible to bribery; willing to act dishonestly for money.",ex:"The venal official accepted cash in exchange for approving the permit.",trick:"'Venal' from Latin 'venalis' (for sale). A venal person has a price tag on their ethics."},
+  {word:"Vivacious",def:"Attractively lively, energetic and animated.",ex:"Her vivacious personality lit up every single room she walked into.",trick:"'Viv' = life (vivid, vivify). Vivacious = overflowing with LIFE and sparkle."},
+  {word:"Mirthful",def:"Full of cheerful laughter and high spirits; merry.",ex:"The comedian's mirthful energy kept the audience laughing all night long.",trick:"'Mirth' = great joy. Add '-ful' = full of it. Mirthful = a bucket overflowing with laughter."},
+  {word:"Poignant",def:"Deeply emotionally moving; evoking sadness, tenderness or regret.",ex:"The final scene of the film was so poignant that almost everyone cried.",trick:"'Poignant' sounds like 'point' — it POINTS right at your heart and stings it."},
+  {word:"Lacklustre",def:"Lacking vitality, force or brilliance; dull and uninspiring.",ex:"The team's lacklustre performance in the second half disappointed fans.",trick:"Literally 'lack' + 'lustre' (shine). No shine = dull = lacklustre."},
+  {word:"Perspicacious",def:"Having keen mental perception and insight; shrewd and astute.",ex:"A perspicacious investor, she spotted the market opportunity months before anyone else.",trick:"'Perspic' like 'perspective' + 'acious' (full of). Full of SHARP perspective = perspicacious."},
+  {word:"Contemptible",def:"Deserving contempt; worthless, despicable or disgraceful.",ex:"Betraying your closest friend for personal gain is contemptible.",trick:"'Contempt' is already IN the word. Contemptible = worthy of contempt. It contains its own meaning."},
+  {word:"Callow",def:"Young and inexperienced; naive and immature.",ex:"His callow enthusiasm was endearing but he clearly had a great deal still to learn.",trick:"'Callow' rhymes with 'shallow' — a callow person is SHALLOW in experience, not yet deep."},
+  {word:"Confounded",def:"Used to express frustration or annoyance; baffled; bewildered.",ex:"\"That confounded printer has jammed again!\" she muttered furiously.",trick:"'Con' + 'found' = something you FOUND that totally confused you. What on earth is this?!"},
+  {word:"Flummoxed",def:"Utterly confused and bewildered; at a complete loss.",ex:"I was completely flummoxed by the 47-page instruction manual.",trick:"'Flummox' — even a strong OX would be confused by this. Flu-mm-OX. Baffled beast."},
+  {word:"Enraged",def:"Extremely angry; filled with intense rage.",ex:"He was enraged when he discovered he'd been deliberately cheated.",trick:"'En' (put into) + 'rage' = put INTO a state of rage. Simple, direct, powerful."},
+  {word:"Culpable",def:"Deserving blame for a fault or wrong; guilty.",ex:"The driver was found culpable for the accident after running a red light.",trick:"'Culpa' = fault in Latin (mea culpa = my fault). Culpable = fault-worthy. You carry the culpa."},
+  {word:"Retrospective",def:"Looking back on past events or situations; dealing with the past.",ex:"The retrospective exhibition covered 30 years of the artist's work.",trick:"'Retro' = backward + 'spect' = look. Retrospective = looking BACKWARD through time."},
+  {word:"Paean",def:"A song or enthusiastic expression of praise, joy or triumph.",ex:"His entire speech was a paean to the courage of frontline healthcare workers.",trick:"'Paean' — you PAY tribute with a paean. It's praise PAID forward in words or song."},
+  {word:"Polemic",def:"A strong, controversial written or verbal attack on an opposing view.",ex:"Her essay was a fierce polemic against the school system's obsession with grades.",trick:"'Polemic' from Greek 'polemos' = war. A polemic is a WAR of ideas on paper."},
+  {word:"Tirade",def:"A long, angry speech filled with criticism or harsh accusation.",ex:"His tirade against the new policy lasted twenty uncomfortable minutes.",trick:"'Tirade' sounds like 'tired-ade' — listening to one leaves you EXHAUSTED. It just goes on and on."},
+  {word:"Panacea",def:"A cure-all; a solution supposedly able to fix all problems.",ex:"More money is not a panacea for the country's deep social problems.",trick:"'Pan' = all + Greek 'akeia' (cure). Pan-acea = CURE FOR ALL. A magic all-in-one fix."},
+  {word:"Critique",def:"A detailed analysis and assessment of something, noting strengths and weaknesses.",ex:"The professor gave a thorough critique of my essay, pointing out both strengths and gaps.",trick:"'Critique' = critical take. You take a CRITICAL, detailed, honest look at something."},
+  {word:"Stymie",def:"To prevent or obstruct the progress of something.",ex:"Bad weather stymied the rescue operation for two full days.",trick:"In golf, a 'stymie' was when your ball was BLOCKED by your opponent's. Blocked = stymied."},
+  {word:"Ubiquitous",def:"Present, appearing or found everywhere, seeming to be omnipresent.",ex:"Smartphones are now ubiquitous — you see them everywhere you go.",trick:"'Ubi' = where (Latin). Ubiquitous = wherever you ask 'WHERE?' — it's already THERE."},
+  {word:"Elucidate",def:"To make something clear; to explain in detail.",ex:"\"Could you elucidate your point? I didn't quite follow your reasoning.\"",trick:"'E-luci' = bring light (lucid = clear). Elucidate = shine a light to make it crystal clear."},
+  {word:"Sanctity",def:"The state of being holy, sacred or having great moral authority.",ex:"He spoke passionately about the sanctity of human life.",trick:"'Sanct' = holy (sanctuary, saint). Sanctity = the quality of being saint-like or sacred."},
+  {word:"Confound",def:"To surprise and confuse someone by defying their expectations.",ex:"The underdog team confounded critics by winning the championship convincingly.",trick:"You FOUND something you didn't expect, and it CONFUSED everything. Con-FOUND = found confusion."},
+  {word:"Enervate",def:"To weaken someone; to drain them of energy or vitality.",ex:"The relentless summer heat enervated everyone working outdoors.",trick:"'En-NERVE-ate' — to drain your NERVES of all energy. De-nerved = enervated. Wiped out."},
+  {word:"Dogmatic",def:"Asserting personal opinions as if they were absolute, unchallengeable truths.",ex:"His dogmatic refusal to consider new evidence frustrated everyone around him.",trick:"'Dogma' = a fixed belief. Dogmatic = SO stuck in your dogma that nothing can shift you."},
+  {word:"Pedantry",def:"Excessive concern with minor rules and details at the expense of the bigger picture.",ex:"Her pedantry about comma placement slowed down the entire editing process.",trick:"'Pedant' = that teacher who corrects EVERYTHING. Pedantry = being that annoying over-corrector."},
+  {word:"Parsimony",def:"Extreme unwillingness to spend money; exceptional stinginess.",ex:"His parsimony was legendary — he'd walk an hour to save a single bus fare.",trick:"'Parsi' sounds like 'parse' (break into tiny pieces). A miser breaks every penny apart before spending."},
+  {word:"Pulchritude",def:"Physical beauty.",ex:"Renaissance painters celebrated the pulchritude of the human form in their masterworks.",trick:"This sounds UGLY but means beauty! The word itself is a trick. Remember by contrast — ugly sound, beautiful meaning."},
+  {word:"Wit",def:"The ability to think quickly and express clever, amusing observations.",ex:"His sharp wit kept dinner guests thoroughly entertained for hours.",trick:"Short word, razor-sharp meaning. Wit = quick, gleaming mind. One syllable, maximum impact."},
+  {word:"Irrelevancies",def:"Things that have no connection to the matter currently being discussed.",ex:"The meeting dragged on for hours due to irrelevancies that had nothing to do with the agenda.",trick:"'Ir' (not) + 'relevant'. Irrelevancy = NOT relevant. Cut the noise!"},
+  {word:"Peccadillo",def:"A minor fault or sin that is not considered very serious.",ex:"Forgetting to reply to emails was his only real peccadillo — otherwise he was reliable.",trick:"'Pecca' = sin in Latin + 'dillo' (little/small). A little-dillo sin. A tiny armadillo-sized mistake."},
+  {word:"Halcyon",def:"Denoting a past time that was idyllically happy, peaceful and carefree.",ex:"She often looked back on her university years as a halcyon period in her life.",trick:"Halcyon was a mythical bird believed to calm stormy seas. Halcyon days = calm, storm-free, magical times."},
+  {word:"Caustic",def:"Capable of burning; in speech, sharply sarcastic and cutting.",ex:"His caustic remarks about her work left her close to tears.",trick:"'Caus' = burn (cauterize, caustic soda). Caustic words BURN the person who hears them."},
+  {word:"Abhor",def:"To regard with intense disgust and hatred; to detest completely.",ex:"She absolutely abhors dishonesty in any form.",trick:"'Ab' (away) + 'hor' (horror). You recoil in HORROR, desperately wanting to get away. Horror = abhor."},
+  {word:"Acerbic",def:"Sharp, biting and sarcastic in manner or tone.",ex:"The critic's acerbic review reduced the young director to tears.",trick:"'Acerb' from Latin 'acerbus' = sour/bitter (like acid). Acerbic words taste sharp and bitter."},
+  {word:"Anachronistic",def:"Something placed in a time period where it doesn't belong; out of its era.",ex:"Using a fax machine in 2025 feels completely anachronistic.",trick:"'Ana' (against) + 'chron' (time, like chronology). Anachronistic = going AGAINST its proper time period."},
+  {word:"Abstruse",def:"Difficult to understand; obscure and highly complex.",ex:"The professor's abstruse lecture on quantum mechanics lost most of the class immediately.",trick:"'Ab' (away) + 'truse' (push). The meaning is PUSHED away from you, hard to grasp."},
+  {word:"Astounding",def:"Surprisingly impressive or remarkable; leaving you speechless.",ex:"Her astounding memory allowed her to recall entire chapters verbatim.",trick:"'A-STOUND' = to stun. Something astounding literally STUNS you where you stand. Thunder-struck."},
+  {word:"Inundate",def:"To overwhelm with an excessive flood of things, people or information.",ex:"After the post went viral, she was inundated with messages from complete strangers.",trick:"'In' + 'unda' = wave (Latin). A WAVE crashing over you — inundate = flooded with things."},
+  {word:"Remnants",def:"Small leftover pieces of something larger that once existed.",ex:"The remnants of the old city wall could still be seen among modern buildings.",trick:"'Remnant' = re-MAIN-ant. The stuff that REMAINS after everything else is gone."},
+  {word:"Mores",def:"The essential customs, moral attitudes and deeply held norms of a society.",ex:"Respecting elders is part of the social mores of many cultures worldwide.",trick:"'Mores' — these are the MORE important rules of society. The CORE ones. More + s = the most essential."},
+  {word:"Curbed",def:"Controlled, limited or restrained; kept in check.",ex:"The new speed limit curbed reckless driving on that stretch of road.",trick:"A physical CURB on a road stops you going further. Curbed = stopped from going too far."},
+  {word:"Prudent",def:"Acting with care and foresight; wise, cautious and sensible.",ex:"It was prudent to build an emergency fund before quitting the job.",trick:"'Pru-DENT' — a DENTist is careful, precise, methodical. Prudent = carefully calculated, cautious decisions."},
+  {word:"Parlous",def:"Dangerously uncertain; fraught with peril.",ex:"The company was in a parlous financial state after three consecutive years of losses.",trick:"'Parlous' is an archaic form of 'perilous'. Parlous = perilous situation with a vintage twist."},
+  {word:"Semiotic",def:"Relating to signs, symbols and their meaning and interpretation.",ex:"The film uses semiotic cues — red signals danger, white signals purity — throughout.",trick:"'Semi' like semaphore = signals. Semiotic = the language and study of SIGNS and symbols."},
+  {word:"Providential",def:"Occurring at a wonderfully fortunate or opportune time; as if guided by fate.",ex:"The rainstorm stopping just before our outdoor wedding felt absolutely providential.",trick:"'Providence' = divine guidance or care. Providential = as if the UNIVERSE arranged it for you."},
+  {word:"Artifices",def:"Clever tricks, cunning strategies or deceptive devices to achieve a goal.",ex:"The magician relied on artifices of misdirection to completely baffle the audience.",trick:"'Artifi' = artificial (made up). Artifices are ARTIFICIALLY crafted tricks. Art + fiction = artifice."},
+  {word:"Immutable",def:"Unchanging over time; permanent; impossible to change or alter.",ex:"The laws of physics are immutable — they hold true everywhere in the universe.",trick:"'Im' (not) + 'mutable' (changeable, like mutation). Immutable = cannot MUTATE. Locked in place."},
+  {word:"Polemical",def:"Involving strong, controversial argument; deliberately confrontational.",ex:"The op-ed was deliberately polemical, designed to provoke a fierce public reaction.",trick:"Same root as polemic — Greek 'war'. Polemical = written like a full declaration of intellectual WAR."},
+  {word:"Vociferously",def:"Expressing opinions loudly, forcefully and persistently.",ex:"Protesters vociferously opposed the new law, chanting outside parliament for days.",trick:"'Voci' = voice (vocal). Vociferous = your VOICE roaring like a ferocious (ferous) wild animal. LOUD."},
+  {word:"Isolationism",def:"The policy of avoiding political and economic involvement with other nations.",ex:"After the war, the nation retreated into decades of isolationism.",trick:"'Iso' = isolated. Isolationism = an entire country choosing to be an ISLAND unto itself."},
+  {word:"Evinced",def:"Revealed or demonstrated something clearly through one's behaviour or actions.",ex:"Her calm demeanour evinced a deep confidence that immediately put the team at ease.",trick:"'Evince' sounds like 'EVIDENCE'. Evinced = shown as clear, undeniable evidence of something."},
+  {word:"Lax",def:"Not strict, severe or careful enough; relaxed to a fault.",ex:"Lax security at the venue allowed the thief to walk right through unchallenged.",trick:"'Lax' sounds like 'relax'. Lax = so relaxed about rules that it becomes a PROBLEM."},
+  {word:"Slack",def:"Lacking energy, effort or diligence; negligent or lazy.",ex:"He was formally warned about his slack attitude toward meeting project deadlines.",trick:"'Slack' = a loose, sagging rope. A slack person lets their effort go LOOSE and saggy."},
+  {word:"Exacerbate",def:"To make an already bad situation significantly worse.",ex:"Scratching the rash only exacerbated the irritation and spread it further.",trick:"'Acerb' = sour/bitter. Exacerbate = squeeze out MORE bitterness. Make it even sourer."},
+  {word:"Pathologize",def:"To treat something as if it were a medical or psychological disorder.",ex:"Society tends to pathologize normal grief by expecting people to 'get over it' in weeks.",trick:"'Patho' (disease) + 'logize' (treat as). Pathologize = turn something normal INTO a disease."},
+  {word:"Importunate",def:"Persistently demanding in a way that is annoying and hard to ignore.",ex:"The importunate salesman called every single day for a week.",trick:"'Import-unate' — he keeps IMPORTING himself uninvited into your life, over and over again."},
+  {word:"Aberrant",def:"Departing from what is normal, expected or correct; deviating from the standard.",ex:"The data showed an aberrant reading that didn't fit any established pattern.",trick:"'Ab' (away) + 'errant' (wandering). Aberrant = wandering AWAY from the normal path."},
+];
+
+let words=JSON.parse(localStorage.getItem('vv2_words')||'null')||DEFS.map(w=>({...w,cat:'none'}));
+let filter='all',tab='flash',fw=[],fi=0,flipped=false,editIdx=null;
+let qq=[],qi=0,qc=0,qw2=0,qa=false;
+
+function save(){localStorage.setItem('vv2_words',JSON.stringify(words));}
+function tot(){document.getElementById('total-c').textContent=words.length;}
+
+function setFilter(f){
+  filter=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  document.querySelector('.f-'+f).classList.add('on');
+  fi=0;flipped=false;
+  document.getElementById('cw').classList.remove('flipped');
+  build();
+  if(tab==='flash')rCard();
+  if(tab==='quiz')iQuiz();
+  uCounts();
+}
+function build(){fw=filter==='all'?[...words]:words.filter(w=>w.cat===filter);}
+function uCounts(){
+  document.getElementById('fc-all').textContent=words.length;
+  document.getElementById('fc-known').textContent=words.filter(w=>w.cat==='known').length;
+  document.getElementById('fc-somewhat').textContent=words.filter(w=>w.cat==='somewhat').length;
+  document.getElementById('fc-unknown').textContent=words.filter(w=>w.cat==='unknown').length;
+  tot();
+}
+
+function setTab(t){
+  tab=t;
+  ['flash','quiz','manage','import'].forEach((x,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',x===t);
+    document.getElementById('tab-'+x).classList.toggle('hidden',x!==t);
+  });
+  const showFilter=t!=='manage'&&t!=='import';
+  document.getElementById('fbar').classList.toggle('hidden',!showFilter);
+  document.getElementById('pwrap').classList.toggle('hidden',!showFilter);
+  if(t==='flash'){build();rCard();}
+  if(t==='quiz'){build();iQuiz();}
+  if(t==='manage')rList();
+}
+
+// ── FLASH ──
+function rCard(){
+  build();
+  const w=fw[fi],n=fw.length;
+  if(!w||n===0){
+    document.getElementById('fw').textContent='No words here';
+    document.getElementById('bw').textContent='';
+    document.getElementById('bd').textContent='Add words or change filter.';
+    document.getElementById('be').textContent='';
+    document.getElementById('bt').textContent='';
+    document.getElementById('nc').textContent='0/0';
+    document.getElementById('pfill').style.width='0%';
+    document.getElementById('plabel').textContent='0/0';
+    return;
+  }
+  document.getElementById('fw').textContent=w.word;
+  document.getElementById('bw').textContent=w.word;
+  document.getElementById('bd').textContent=w.def;
+  document.getElementById('be').textContent=w.ex||'—';
+  document.getElementById('bt').textContent=w.trick||'—';
+  document.getElementById('nc').textContent=`${fi+1}/${n}`;
+  document.getElementById('pfill').style.width=((fi+1)/n*100)+'%';
+  document.getElementById('plabel').textContent=`${fi+1} of ${n} cards`;
+  document.getElementById('pb').disabled=fi===0;
+  document.getElementById('nb2').disabled=fi===n-1;
+  ['known','somewhat','unknown'].forEach(c=>{
+    const btn=document.getElementById('c'+c[0]);
+    btn.className='catbtn '+c+(w.cat===c?' sel-'+c:'');
+  });
+}
+function flipCard(){flipped=!flipped;document.getElementById('cw').classList.toggle('flipped',flipped);}
+function prevC(){if(fi>0){fi--;flipped=false;document.getElementById('cw').classList.remove('flipped');rCard();}}
+function nextC(){if(fi<fw.length-1){fi++;flipped=false;document.getElementById('cw').classList.remove('flipped');rCard();}}
+function mark(cat){
+  const w=fw[fi];if(!w)return;
+  const gi=words.indexOf(w);
+  if(gi>-1){
+    words[gi].cat=cat;
+    save();uCounts();
+    // Auto-advance logic
+    if(cat==='known'){
+      // Remove from current stack
+      fw.splice(fi,1);
+      if(fi>=fw.length)fi=fw.length-1;
+    }else{
+      // Move to back for 'unknown' and 'somewhat'
+      fw.splice(fi,1);
+      fw.push(w);
+      if(fi>=fw.length)fi=fw.length-1;
+    }
+    if(fw.length===0){
+      rCard(); // Show no words
+    }else{
+      rCard();
+    }
+  }
+}
+
+// ── QUIZ ──
+function iQuiz(){build();qq=[...fw].sort(()=>Math.random()-.5);qi=0;qc=0;qw2=0;rQuiz();}
+function rQuiz(){
+  document.getElementById('sqc').textContent=qc;
+  document.getElementById('sqw').textContent=qw2;
+  document.getElementById('sql').textContent=Math.max(0,qq.length-qi);
+  document.getElementById('pfill').style.width=(qq.length?qi/qq.length*100:0)+'%';
+  document.getElementById('plabel').textContent=`${qi} of ${qq.length} answered`;
+  if(qq.length===0){
+    document.getElementById('qw').textContent='No words here';
+    document.getElementById('qo').innerHTML='<div style="grid-column:1/-1;color:var(--muted);font-size:.73rem;text-align:center;padding:14px">Change filter or add words first.</div>';
+    document.getElementById('fb').textContent='';return;
+  }
+  if(qi>=qq.length){
+    document.getElementById('qw').textContent='🎉 Complete!';
+    document.getElementById('qo').innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:18px;font-size:.78rem;color:var(--muted)">Score: ${qc}/${qq.length} &nbsp;·&nbsp; <button onclick="iQuiz()" style="background:transparent;border:1px solid var(--accent);color:var(--accent);padding:5px 12px;cursor:pointer;font-family:inherit;font-size:.68rem;letter-spacing:.08em;">Try again</button></div>`;
+    document.getElementById('fb').textContent='';return;
+  }
+  qa=false;
+  document.getElementById('fb').textContent='';
+  document.getElementById('fb').className='fb';
+  const w=qq[qi];
+  document.getElementById('qw').textContent=w.word;
+  const pool=words.filter(x=>x.word!==w.word).sort(()=>Math.random()-.5).slice(0,3);
+  const opts=[...pool,w].sort(()=>Math.random()-.5);
+  const c=document.getElementById('qo');c.innerHTML='';
+  opts.forEach(o=>{
+    const b=document.createElement('button');b.className='obtn';
+    b.textContent=o.def.length>88?o.def.substring(0,88)+'…':o.def;
+    b.onclick=()=>ans(o,w,b);c.appendChild(b);
+  });
+}
+function ans(chosen,correct,btn){
+  if(qa)return;qa=true;
+  const fb=document.getElementById('fb');
+  if(chosen.word===correct.word){btn.classList.add('correct');fb.textContent='✓ Correct!';fb.className='fb ok';qc++;}
+  else{btn.classList.add('wrong');fb.textContent='✗ Wrong';fb.className='fb bad';qw2++;
+    document.querySelectorAll('.obtn').forEach(b=>{const t=correct.def.length>88?correct.def.substring(0,88)+'…':correct.def;if(b.textContent===t)b.classList.add('correct');});
+  }
+  document.querySelectorAll('.obtn').forEach(b=>b.disabled=true);
+  document.getElementById('sqc').textContent=qc;document.getElementById('sqw').textContent=qw2;
+  setTimeout(()=>{qi++;rQuiz();},1500);
+}
+
+// ── MANAGE ──
+function rList(){
+  const l=document.getElementById('wl');
+  if(!words.length){l.innerHTML='<div class="empty">No words yet.<br>Hit "+ Add Word" to begin.</div>';return;}
+  l.innerHTML=words.map((w,i)=>`<div class="witem"><div class="wiw">${w.word}</div><div class="wid">${w.def}</div><div class="wic ${w.cat}">${w.cat==='none'?'–':w.cat}</div><div class="wia"><button class="ibtn ed" onclick="openM(${i})" title="Edit">✎</button><button class="ibtn dl" onclick="rmW(${i})" title="Remove">✕</button></div></div>`).join('');
+}
+function rmW(i){if(!confirm(`Remove "${words[i].word}"?`))return;words.splice(i,1);save();uCounts();rList();}
+
+// ── MODAL ──
+function openM(i=null){
+  editIdx=i;
+  document.getElementById('mtitle').textContent=i===null?'Add New Word':'Edit Word';
+  if(i!==null){const w=words[i];document.getElementById('mw').value=w.word;document.getElementById('mdef').value=w.def;document.getElementById('mex').value=w.ex||'';document.getElementById('mtr').value=w.trick||'';}
+  else{['mw','mdef','mex','mtr'].forEach(id=>document.getElementById(id).value='');}
+  document.getElementById('mov').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('mw').focus(),50);
+}
+function closeM(){document.getElementById('mov').classList.add('hidden');editIdx=null;}
+function closeOut(e){if(e.target===document.getElementById('mov'))closeM();}
+function saveW(){
+  const word=document.getElementById('mw').value.trim();
+  const def=document.getElementById('mdef').value.trim();
+  if(!word||!def){alert('Word and definition are required.');return;}
+  const entry={word,def,ex:document.getElementById('mex').value.trim(),trick:document.getElementById('mtr').value.trim(),cat:editIdx!==null?words[editIdx].cat:'none'};
+  if(editIdx!==null)words[editIdx]=entry;else words.push(entry);
+  save();uCounts();closeM();rList();build();
+  if(tab==='flash')rCard();
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('mov').classList.contains('hidden'))return;
+  if(!document.getElementById('imp-preview-overlay').classList.contains('hidden'))return;
+  if(tab==='flash'){
+    if(e.key==='ArrowLeft')prevC();
+    if(e.key==='ArrowRight')nextC();
+    if(e.key===' '){e.preventDefault();flipCard();}
+    if(e.key==='1')mark('known');
+    if(e.key==='2')mark('somewhat');
+    if(e.key==='3')mark('unknown');
+  }
+});
+
+// ── IMPORT SYSTEM ──
+let extractedWords=[];
+
+async function handleImport(input,type){
+  const file=input.files[0];
+  if(!file)return;
+  input.value='';
+  const errBox=document.getElementById('imp-err-box');
+  if(errBox)errBox.remove();
+  showImpStatus('Reading your file…');
+  try{
+    if(type==='photo'||type==='image') await importImage(file);
+    else if(type==='pdf') await importPDF(file);
+    else if(type==='doc') await importDoc(file);
+    else if(type==='excel') await importExcelCSV(file);
+    else if(type==='text') await importText(file);
+  }catch(e){
+    hideImpStatus();
+    showImpError('Error: '+(e.message||'Something went wrong. Please try a different file.'));
+  }
+}
+
+function showImpStatus(msg){
+  document.getElementById('imp-status-text').textContent=msg;
+  document.getElementById('imp-status').classList.remove('hidden');
+}
+function hideImpStatus(){document.getElementById('imp-status').classList.add('hidden');}
+function showImpError(msg){
+  hideImpStatus();
+  const d=document.createElement('div');
+  d.id='imp-err-box';d.className='imp-err';d.textContent=msg;
+  const hint=document.querySelector('.imp-hint');
+  hint.parentNode.insertBefore(d,hint);
+  setTimeout(()=>d.remove(),8000);
+}
+
+async function importImage(file){
+  showImpStatus('🔍 AI is reading your handwriting…');
+  const b64=await fileToBase64(file);
+  const mt=file.type||'image/jpeg';
+  const result=await callClaudeVision(b64,mt);
+  hideImpStatus();showPreview(result,file.name);
+}
+async function importPDF(file){
+  showImpStatus('📄 Reading PDF and extracting vocabulary…');
+  const b64=await fileToBase64(file);
+  const result=await callClaudePDF(b64);
+  hideImpStatus();showPreview(result,file.name);
+}
+async function importDoc(file){
+  showImpStatus('📝 Reading Word document…');
+  const text=await extractDocxText(file);
+  if(!text||text.trim().length<10)throw new Error('Could not extract text. Try saving as .txt or .pdf first.');
+  showImpStatus('🤖 AI is extracting vocabulary…');
+  const result=await callClaudeText(text);
+  hideImpStatus();showPreview(result,file.name);
+}
+async function importExcelCSV(file){
+  showImpStatus('📊 Reading spreadsheet…');
+  let text='';
+  if(file.name.endsWith('.csv')||file.type==='text/csv')text=await file.text();
+  else text=await extractXlsxAsText(file);
+  showImpStatus('🤖 AI is extracting vocabulary…');
+  const result=await callClaudeText(text);
+  hideImpStatus();showPreview(result,file.name);
+}
+async function importText(file){
+  showImpStatus('🤖 AI is extracting vocabulary…');
+  const text=await file.text();
+  const result=await callClaudeText(text);
+  hideImpStatus();showPreview(result,file.name);
+}
+
+const SYS_PROMPT=`You are a vocabulary extraction assistant. Extract ALL vocabulary words and definitions from the content provided.
+
+Return ONLY a valid JSON array — no markdown, no explanation, nothing else. Raw JSON only.
+
+Each object must have exactly these keys:
+- "word": the vocabulary word or phrase
+- "def": clear, concise definition
+- "ex": a natural example sentence using the word in everyday life (create a good one if not provided)
+- "trick": a fun, memorable mnemonic (etymology, sound link, visual, wordplay) to remember this word
+
+Rules:
+- Extract EVERY word-definition pair you can find
+- For handwritten notes: interpret → - : as "means"
+- For tables: first column = word, second = definition typically  
+- Always generate helpful examples and memory tricks
+- If only words with no definitions exist, define them properly
+- Remove duplicates, return minimum 1 item
+- Output ONLY the JSON array, nothing else`;
+
+async function callClaudeVision(b64,mt){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:SYS_PROMPT,
+      messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:mt,data:b64}},
+        {type:'text',text:'Extract all vocabulary words and definitions from this image. Return only a JSON array.'}
+      ]}]})
+  });
+  return parseResp(r);
+}
+async function callClaudePDF(b64){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:SYS_PROMPT,
+      messages:[{role:'user',content:[
+        {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+        {type:'text',text:'Extract all vocabulary words and definitions from this document. Return only a JSON array.'}
+      ]}]})
+  });
+  return parseResp(r);
+}
+async function callClaudeText(text){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:SYS_PROMPT,
+      messages:[{role:'user',content:`Extract all vocabulary words and definitions from this text. Return only a JSON array.\n\n${text.substring(0,8000)}`}]})
+  });
+  return parseResp(r);
+}
+async function parseResp(response){
+  if(!response.ok){
+    const e=await response.json().catch(()=>({}));
+    throw new Error(e.error?.message||`API error ${response.status}`);
+  }
+  const data=await response.json();
+  const raw=(data.content||[]).map(b=>b.text||'').join('');
+  const cleaned=raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+  try{
+    const p=JSON.parse(cleaned);
+    if(!Array.isArray(p))throw new Error('not array');
+    return p;
+  }catch{
+    const m=cleaned.match(/\[[\s\S]*\]/);
+    if(m)return JSON.parse(m[0]);
+    throw new Error('Could not parse AI response. Try a clearer image or different file format.');
+  }
+}
+
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('Failed to read file'));
+    r.readAsDataURL(file);
+  });
+}
+async function extractDocxText(file){
+  try{
+    const ab=await file.arrayBuffer();
+    const u8=new Uint8Array(ab);
+    const str=new TextDecoder('utf-8',{fatal:false}).decode(u8);
+    const xmlM=str.match(/<w:t[^>]*>([^<]*)<\/w:t>/g)||[];
+    const parts=xmlM.map(m=>m.replace(/<[^>]+>/g,''));
+    if(parts.length>0)return parts.join(' ');
+    return str.replace(/<[^>]+>/g,' ').replace(/[^\x20-\x7E\n]/g,' ').replace(/\s+/g,' ').trim();
+  }catch{return '';}
+}
+async function extractXlsxAsText(file){
+  try{const t=await file.text();if(t&&t.trim().length>5)return t;}catch{}
+  const ab=await file.arrayBuffer();
+  const u8=new Uint8Array(ab);
+  const str=new TextDecoder('utf-8',{fatal:false}).decode(u8);
+  const m=str.match(/<t[^>]*>([^<]*)<\/t>/g)||[];
+  return m.map(x=>x.replace(/<[^>]+>/g,'').trim()).filter(Boolean).join('\t');
+}
+
+function showPreview(wds,filename){
+  if(!wds||wds.length===0){
+    showImpError('No vocabulary found. Make sure your file has word → definition pairs.');return;
+  }
+  extractedWords=wds.map(w=>({...w,cat:'none',selected:true}));
+  const dupeSet=new Set(words.map(w=>w.word.toLowerCase().trim()));
+
+  document.getElementById('imp-preview-meta').innerHTML=
+    `Found <strong style="color:var(--accent)">${wds.length}</strong> word${wds.length!==1?'s':''} in <em style="color:var(--muted)">${filename}</em>`;
+
+  const list=document.getElementById('imp-preview-list');
+  list.innerHTML=extractedWords.map((w,i)=>{
+    const isDupe=dupeSet.has((w.word||'').toLowerCase().trim());
+    if(isDupe)extractedWords[i].selected=false;
+    return `<div class="imp-pword">
+      <input type="checkbox" class="imp-pword-check" id="pc-${i}" ${isDupe?'':'checked'} onchange="extractedWords[${i}].selected=this.checked"/>
+      <div class="imp-pword-info">
+        <div class="imp-pword-w">${w.word||''}${isDupe?'<span class="imp-pword-dup">already exists</span>':''}</div>
+        <div class="imp-pword-d">${w.def||''}</div>
+        ${w.ex?`<div class="imp-pword-e">"${w.ex}"</div>`:''}
+        ${w.trick?`<div class="imp-pword-t">💡 ${w.trick}</div>`:''}
+      </div></div>`;
+  }).join('');
+
+  document.getElementById('imp-preview-overlay').classList.remove('hidden');
+}
+function closeImpPreview(e){
+  if(e.target===document.getElementById('imp-preview-overlay'))
+    document.getElementById('imp-preview-overlay').classList.add('hidden');
+}
+function toggleSelectAll(){
+  const allOn=extractedWords.every(w=>w.selected);
+  extractedWords.forEach((w,i)=>{
+    w.selected=!allOn;
+    const cb=document.getElementById('pc-'+i);
+    if(cb)cb.checked=!allOn;
+  });
+}
+function addExtractedWords(){
+  const toAdd=extractedWords.filter(w=>w.selected);
+  if(!toAdd.length){alert('Select at least one word to add.');return;}
+  const existingLower=new Set(words.map(w=>w.word.toLowerCase().trim()));
+  let added=0;
+  toAdd.forEach(w=>{
+    const wl=(w.word||'').toLowerCase().trim();
+    if(!existingLower.has(wl)){
+      words.push({word:w.word,def:w.def,ex:w.ex||'',trick:w.trick||'',cat:'none'});
+      existingLower.add(wl);added++;
+    }else{
+      const ex=words.find(x=>x.word.toLowerCase().trim()===wl);
+      if(ex){if(!ex.ex&&w.ex)ex.ex=w.ex;if(!ex.trick&&w.trick)ex.trick=w.trick;}
+    }
+  });
+  save();uCounts();build();
+  document.getElementById('imp-preview-overlay').classList.add('hidden');
+  extractedWords=[];
+  setTab('manage');rList();
+  const banner=document.createElement('div');
+  banner.style.cssText='background:rgba(76,175,125,.12);border:1px solid #2d5c38;padding:10px 14px;font-size:.72rem;color:#4caf7d;margin-bottom:12px;text-align:center;letter-spacing:.05em';
+  banner.textContent=`✓ ${added} new word${added!==1?'s':''} added to your library!`;
+  const mw=document.getElementById('tab-manage');
+  mw.insertBefore(banner,mw.firstChild);
+  setTimeout(()=>banner.remove(),4000);
+}
+
+// ── EXTRA GRE WORDS ──
+const GRE_EXTRA=[
+  // A
+  {word:"Abjure",def:"To solemnly renounce or give up a belief, claim or practice.",ex:"After years of extremism, he publicly abjured his radical views.",trick:"'Ab' (away) + 'jure' (swear, like jury). To swear AWAY from something forever."},
+  {word:"Abscond",def:"To leave hurriedly and secretly, typically to escape from custody or avoid consequences.",ex:"The accountant absconded with three million dollars of client funds.",trick:"'Ab' (away) + 'scond' (hide). To hide yourself AWAY — vanish in the night."},
+  {word:"Abstemious",def:"Not self-indulgent; moderate in eating, drinking and other pleasures.",ex:"His abstemious lifestyle — no alcohol, no junk food — kept him fit into his 80s.",trick:"'Ab-STEM-ious' — stem the flow! You STEM your desires. Self-restrained."},
+  {word:"Abstruse",def:"Difficult to understand; obscure and esoteric.",ex:"The philosopher's abstruse arguments left even his colleagues baffled.",trick:"'Ab' (away) + push. The meaning is pushed AWAY from you. Hard to grasp."},
+  {word:"Acrimony",def:"Bitterness or ill feeling, especially in speech or manner.",ex:"The divorce proceedings were marked by acrimony on both sides.",trick:"'Acri' = sharp/bitter (like acrid). Acrimony = bitter, sharp emotional hostility."},
+  {word:"Admonish",def:"To warn or reprimand someone firmly but not harshly.",ex:"The teacher admonished the student for talking during the exam.",trick:"'Ad' (toward) + 'monish' (warn, like monitor). To point a warning TOWARD someone."},
+  {word:"Adulterate",def:"To make something impure by adding inferior or harmful substances.",ex:"The factory was shut down for adulterating its products with cheap fillers.",trick:"'Adult-erate' — adults who cheat ADD impure things to make a product seem better than it is."},
+  {word:"Advocate",def:"To publicly support or recommend a cause or policy; a person who does this.",ex:"She has been a fierce advocate for mental health awareness for years.",trick:"'Ad' (toward) + 'voc' (voice, like vocal). An advocate adds their VOICE toward a cause."},
+  {word:"Aesthetic",def:"Concerned with beauty and the appreciation of art; visually pleasing.",ex:"The architect had an impeccable aesthetic — every detail was considered.",trick:"'Aesthet' = feeling/sensation in Greek. Aesthetic = what pleases your SENSES, especially sight."},
+  {word:"Affable",def:"Friendly, easy to talk to and good-natured.",ex:"Despite being CEO, he was remarkably affable and remembered every employee's name.",trick:"'Aff-ABLE' — able to AFFord kindness to everyone. Easy to approach."},
+  {word:"Aggrandize",def:"To increase the power, status or wealth of someone, often in a self-serving way.",ex:"His memoir was really just an exercise in self-aggrandizement.",trick:"'Grand' is inside! Aggrandize = make yourself GRAND. Puff yourself up."},
+  {word:"Alacrity",def:"Brisk and cheerful readiness; eager willingness.",ex:"She accepted the challenging assignment with alacrity, excited by the opportunity.",trick:"'Al-ACRITY' — think of 'alacrity' like 'electric city'. You jump up with an electric, eager energy."},
+  {word:"Amalgamate",def:"To combine or unite to form one organization or structure.",ex:"The two rival companies decided to amalgamate into a single entity.",trick:"'Amalgam' is a mix of metals (dental fillings). Amalgamate = melt different things into ONE."},
+  {word:"Ambiguous",def:"Open to more than one interpretation; not clear or decided.",ex:"His ambiguous answer left everyone unsure whether he was quitting or not.",trick:"'Ambi' = both ways. Ambiguous = can go BOTH ways. You can't tell which way it leans."},
+  {word:"Ameliorate",def:"To make something bad or unsatisfactory better.",ex:"New irrigation systems helped ameliorate the effects of the drought.",trick:"'Melio' = better in Latin (as in 'meliorate'). Ameliorate = make it better."},
+  {word:"Anachronism",def:"A thing belonging or appropriate to a period other than that in which it exists.",ex:"A knight in armour at a modern wedding would be quite an anachronism.",trick:"'Ana' (against) + 'chron' (time). Something AGAINST its proper time period."},
+  {word:"Anathema",def:"Something or someone greatly detested or loathed; a formal curse.",ex:"Dishonesty is absolute anathema to her — she cannot tolerate it in any form.",trick:"'Ana' + 'thema' — imagine throwing something UP (ana) and cursing it. Deeply hated, cursed."},
+  {word:"Anomalous",def:"Deviating from what is standard, normal or expected.",ex:"The warm weather in January was anomalous even for that region.",trick:"'A' (not) + 'nomal' (norm). Anomalous = NOT normal. The oddball in the data."},
+  {word:"Apathy",def:"Lack of interest, enthusiasm or concern.",ex:"Voter apathy led to record low turnout in the local elections.",trick:"'A' (without) + 'pathy' (feeling, like sympathy). Apathy = WITHOUT any feeling at all."},
+  {word:"Apocryphal",def:"Of doubtful authenticity; widely circulated but probably not true.",ex:"The story of him wrestling a bear is almost certainly apocryphal.",trick:"'Apo' (away) + 'cryphal' (hidden/secret). Apocryphal = hidden away from truth. Dubious."},
+  {word:"Approbation",def:"Approval or praise, especially from an official source.",ex:"The design received approbation from the entire review board.",trick:"'Appro' = approve. Approbation = the APPROVAL you crave. Like a stamp of official praise."},
+  {word:"Archaic",def:"Very old or old-fashioned; no longer in common use.",ex:"Using the word 'thou' in daily conversation sounds archaic today.",trick:"'Arch' = ancient (like archaeology = study of ancient things). Archaic = ancient and outdated."},
+  {word:"Ardor",def:"Enthusiasm or passion; great eagerness.",ex:"She pursued her research with the ardor of someone who had found their life's purpose.",trick:"'Ardor' = ARDent + -or. Ardent means passionate. Ardor = the FIRE of passion. Burning desire."},
+  {word:"Artless",def:"Without deceit or cunning; natural and simple; lacking skill.",ex:"Her artless confession — she just blurted out exactly what she thought — was refreshing.",trick:"'Art-LESS' — without the art of deception. No clever tricks. Pure and unguarded."},
+  {word:"Ascetic",def:"Characterized by severe self-discipline; abstaining from all indulgences.",ex:"The monk lived an ascetic life with no possessions beyond a mat and a bowl.",trick:"'Ascet' from Greek 'asketes' (monk). Ascetic = monk-like. Strip away everything luxurious."},
+  {word:"Assiduous",def:"Showing great care, attention and effort; hardworking and persistent.",ex:"Her assiduous preparation for the GRE paid off — she scored in the 99th percentile.",trick:"'Assidu' = sit beside (Latin). Assiduous = someone who SITS beside the work endlessly, never leaving."},
+  {word:"Assuage",def:"To make an unpleasant feeling less intense; to satisfy.",ex:"He tried to assuage his guilt by donating to the charity he had wronged.",trick:"'Assuage' sounds like 'a soothe-age'. You SOOTHE and ease painful feelings."},
+  {word:"Attenuate",def:"To reduce the force, effect or value of something; to weaken.",ex:"The medication helped attenuate the pain, making it manageable.",trick:"'Attenu' = thin (like tenuous = thin). Attenuate = make something THIN and weak."},
+  {word:"Audacious",def:"Showing a willingness to take bold risks; daring and brave.",ex:"It was audacious to pitch the idea directly to the CEO with no appointment.",trick:"'Audax' = bold in Latin. Audacious = boldly daring. The lion who roars at the hunter."},
+  {word:"Austere",def:"Severe or strict in appearance or attitude; having no comforts.",ex:"The office was austere — bare white walls, no art, just desks and monitors.",trick:"'Austere' sounds like 'a stern'. Austere = STERN, harsh, stripped of all softness."},
+  {word:"Avarice",def:"Extreme greed for wealth or material gain.",ex:"His avarice was his downfall — he cheated clients for decades before being caught.",trick:"'Avar' sounds like 'have-ar'. Avarice = the desperate need to HAVE and HAVE MORE."},
+  // B
+  {word:"Banal",def:"So lacking originality as to be obvious or boring; trite.",ex:"His speech was full of banal platitudes that said nothing new.",trick:"'Ba-NAL' — sounds like 'ba-NAIL' — a dull, flat nail. Banal = flat, dull, hammered into boredom."},
+  {word:"Belligerent",def:"Hostile and aggressive; inclined to start conflicts.",ex:"The belligerent customer shouted at the staff over a minor mistake.",trick:"'Belli' = war (like belligerent nations). Belligerent = WAR-hungry in personality."},
+  {word:"Bemoan",def:"To express grief or discontent about something.",ex:"She bemoaned the lack of public transport in the rural town.",trick:"'Be-MOAN' — to MOAN and groan about something. Literally moaning about it."},
+  {word:"Benign",def:"Gentle and kind; not harmful or threatening.",ex:"The tumour turned out to be benign — a huge relief for the whole family.",trick:"'Beni' = well/good (like benefit, benefactor). Benign = of GOOD nature. Kindly and harmless."},
+  {word:"Bolster",def:"To support or strengthen; to boost.",ex:"She bolstered her argument with three independent studies.",trick:"A bolster is a long PILLOW that supports your back. To bolster = to prop up and support."},
+  {word:"Boorish",def:"Rough and bad-mannered; unrefined and coarse.",ex:"His boorish behaviour at dinner — talking with his mouth full, burping loudly — embarrassed everyone.",trick:"'Boor' = a rough, uneducated peasant. Boorish = behaving like an unrefined BOOR."},
+  {word:"Bucolic",def:"Relating to the pleasant aspects of the countryside; rustic and idyllic.",ex:"They escaped city stress for a bucolic weekend in the rolling hills.",trick:"'Bu' sounds like 'moo' (cow). Bucolic = cow-country. Peaceful, grassy, pastoral scenery."},
+  // C
+  {word:"Cacophony",def:"A harsh, unpleasant mixture of loud sounds.",ex:"The construction site outside created a daily cacophony that made it hard to concentrate.",trick:"'Caco' = bad (like cactus is prickly) + 'phony' = sound. Cacophony = BAD SOUNDS. Noise pollution."},
+  {word:"Capricious",def:"Given to sudden and unaccountable changes of mood or behaviour.",ex:"The capricious weather ruined three picnics in a row that summer.",trick:"'Capri' — the goat constellation (Capricorn). Goats jump unpredictably. Capricious = jumpy, erratic."},
+  {word:"Castigate",def:"To reprimand or punish someone severely.",ex:"The coach castigated the team for their lack of effort in the first half.",trick:"'Castigate' sounds like 'CAST-i-GATE' — you CAST someone THROUGH the gate (throw them out) while scolding them."},
+  {word:"Catalyze",def:"To cause or accelerate a reaction or event.",ex:"The protest catalyzed a national conversation about police reform.",trick:"'Catalyst' starts a chemical reaction. To catalyze = to SPARK and speed up change."},
+  {word:"Censure",def:"To express severe disapproval of someone, especially formally.",ex:"The senator was censured by his colleagues for his inflammatory remarks.",trick:"'Cen' sounds like 'SEN-sor'. Censure = someone officially SENSING wrongdoing and calling it out harshly."},
+  {word:"Chicanery",def:"The use of trickery or deception to achieve one's purpose.",ex:"The election was marred by chicanery — forged ballots and intimidated voters.",trick:"'Chicane' = a tricky obstacle on a racing track. Chicanery = using TRICKY OBSTACLES (deception) to win."},
+  {word:"Circumscribe",def:"To restrict the freedom or influence of; to draw a line around.",ex:"His authority was circumscribed by the board — he couldn't hire without approval.",trick:"'Circum' = around + 'scribe' = write/draw. Draw a CIRCLE around something = limit it."},
+  {word:"Circumspect",def:"Wary and unwilling to take risks; carefully considering all circumstances.",ex:"She was circumspect about signing anything without her lawyer present.",trick:"'Circum' (around) + 'spect' (look). Look ALL AROUND before acting. 360° caution."},
+  {word:"Coalesce",def:"To come together to form one mass or whole; to merge.",ex:"Over years, the small regional parties coalesced into a single national movement.",trick:"'Co' = together + 'alesce' (grow). GROW TOGETHER. Separate things merging into one."},
+  {word:"Cogent",def:"Clear, logical and convincing; compelling.",ex:"She made a cogent argument that swayed even the most sceptical board members.",trick:"'Cogent' sounds like 'co-AGENT' — a co-agent who WORKS WITH your logic to convince perfectly."},
+  {word:"Commensurate",def:"Corresponding in size or degree; proportionate.",ex:"His salary was commensurate with his level of experience.",trick:"'Com' (together) + 'mensur' (measure). MEASURED TOGETHER. Same scale, same measure."},
+  {word:"Compendium",def:"A collection of concise, detailed information; a summary.",ex:"The book is a compendium of every known herb and its medicinal properties.",trick:"'Compend' = weigh together (Latin). A compendium WEIGHS all the facts and packs them in one place."},
+  {word:"Complacent",def:"Showing smug satisfaction with oneself or one's achievements; uncritically satisfied.",ex:"The champion grew complacent and lost to an underdog after months without training.",trick:"'Com' + 'placent' (please). Too PLEASED with yourself to bother improving. Smugly content."},
+  {word:"Conciliate",def:"To make peace with; to make someone less angry or hostile.",ex:"He sent a handwritten apology to conciliate the offended client.",trick:"'Con' + 'cili' (council). Bring to a COUNCIL together = talk it out, make peace."},
+  {word:"Condone",def:"To accept or allow behaviour that is considered wrong; to overlook.",ex:"The school refused to condone bullying in any form.",trick:"'Con-DONE' — you say 'it's DONE, it's fine' about something you shouldn't. Overlooking wrongdoing."},
+  {word:"Conflagration",def:"A large, destructive fire; a violent conflict or war.",ex:"A single spark in the dry forest started a conflagration that burned for weeks.",trick:"'Con' + 'flagr' (blaze, like 'flagrant'). BLAZING together. Massive, consuming fire."},
+  {word:"Convoluted",def:"Extremely complex and difficult to follow; intricate.",ex:"The tax code is so convoluted that most people need an accountant to file.",trick:"'Con-VOLUT-ed' — 'volut' = roll (like revolve). Something convoluted is ROLLED UP in endless loops."},
+  {word:"Corroborate",def:"To confirm or give support to a statement or theory.",ex:"Three witnesses corroborated her account of what happened that evening.",trick:"'Cor' + 'robor' (strong, like robust). To make STRONG together. Evidence strengthens the claim."},
+  {word:"Credulous",def:"Having too great a readiness to believe things; gullible.",ex:"The credulous investor lost everything to a scam that any sceptic would have spotted instantly.",trick:"'Cred' = believe (like 'credit'). Credulous = BELIEVES too easily. Full of misplaced belief."},
+  {word:"Cupidity",def:"Greed for money or possessions; excessive desire for wealth.",ex:"His cupidity led him to accept bribes that eventually destroyed his career.",trick:"Think of Cupid but with COINS instead of arrows. Cupidity = struck by love of money."},
+  // D
+  {word:"Dauntless",def:"Showing fearlessness and determination; not intimidated.",ex:"The dauntless firefighter ran into the burning building a third time.",trick:"'Daunt' = to frighten. Dauntless = CANNOT be daunted. Fear has no grip on this person."},
+  {word:"Decorum",def:"Behaviour in keeping with good taste and propriety; dignified conduct.",ex:"She maintained perfect decorum throughout the ceremony despite feeling unwell.",trick:"'Decor' = decoration. Decorum = decorating your BEHAVIOUR appropriately for the occasion."},
+  {word:"Deferential",def:"Showing respectful submission to another's judgement or wishes.",ex:"Junior staff were expected to be deferential to senior partners.",trick:"'Defer' = to hand over to someone else. Deferential = always handing decisions to others out of respect."},
+  {word:"Demagogue",def:"A political leader who appeals to popular desires and prejudices rather than rational argument.",ex:"The demagogue whipped up fear of immigrants to win votes.",trick:"'Demo' = people + 'gogue' = leader (like 'pedagogue' = teacher of children). Demagogue = LEADS THE CROWD by emotion, not reason."},
+  {word:"Deprecate",def:"To express disapproval of; to belittle or disparage.",ex:"He deprecated his own achievements, calling them 'just lucky timing'.",trick:"'Depre' sounds like 'depress'. Deprecate = PRESS DOWN on something's value. Put it down."},
+  {word:"Deride",def:"To express contempt for; to mock or ridicule.",ex:"Critics derided the film as the worst of the year.",trick:"'De-RIDE' — to RIDE someone down, like a horse trampling over them with mockery."},
+  {word:"Desiccate",def:"To remove all moisture from; to dry out completely.",ex:"The summer heat desiccated the soil, leaving wide cracks across the field.",trick:"'De' (remove) + 'sicc' (dry, like 'siccative'). Desiccate = completely DRY something out."},
+  {word:"Desultory",def:"Lacking a plan, purpose or enthusiasm; going from one thing to another randomly.",ex:"His desultory studying — a bit of one subject, then drifting to another — produced poor results.",trick:"'Desult' = to jump (Latin). Desultory = jumping around randomly, never staying focused."},
+  {word:"Diatribe",def:"A forceful and bitter verbal attack against someone or something.",ex:"His diatribe against the press lasted twenty minutes and left reporters stunned.",trick:"'Di-a-TRIBE' — imagine a tribal leader unleashing a fierce, prolonged verbal attack. Angry and relentless."},
+  {word:"Didactic",def:"Intended to teach or instruct, often in a preachy way.",ex:"The film was so didactic it felt like a lecture rather than entertainment.",trick:"'Didact' = teach (like 'didactics' = theory of teaching). Didactic = teaching-focused, often too obviously."},
+  {word:"Diffident",def:"Modest or shy because of a lack of self-confidence.",ex:"Despite his brilliance, he was diffident about sharing his ideas in meetings.",trick:"'Diff' + 'ident' (identity). Diffident = lacking confidence in your own IDENTITY. Shy and unsure."},
+  {word:"Dilettante",def:"A person who cultivates an area of interest superficially; an amateur dabbler.",ex:"He was a dilettante — painting, writing, composing — but mastered none of them.",trick:"'Dilettante' from Italian 'dilettare' (to delight). A dilettante does things for DELIGHT, not mastery."},
+  {word:"Disabuse",def:"To free someone from a mistaken belief or impression.",ex:"Let me disabuse you of the notion that this job will be easy.",trick:"'Dis' (remove) + 'abuse' (misuse). Disabuse = remove the MISUSE of an idea. Correct a false belief."},
+  {word:"Discern",def:"To perceive or recognize something, especially when subtle; to distinguish.",ex:"Even at a distance she could discern a difference in the twins' expressions.",trick:"'Dis' (apart) + 'cern' (sift, separate). Discern = sift things APART to identify clearly."},
+  {word:"Discordant",def:"Not in harmony; harsh and jarring; conflicting.",ex:"The discordant notes in the experimental music made the audience uncomfortable.",trick:"'Dis' (not) + 'cord' (heart/chord). AGAINST the chord. Out of tune and clashing."},
+  {word:"Disparage",def:"To regard or represent as being of little worth; to belittle.",ex:"He constantly disparaged his assistant's ideas, never giving credit.",trick:"'Dis-PARAGE' — 'parage' = equal rank. Disparage = lower someone BELOW equal rank. Belittle them."},
+  {word:"Dispassionate",def:"Not influenced by strong emotion; calm and impartial.",ex:"The judge was known for her dispassionate rulings — facts only, no sentiment.",trick:"'Dis' (without) + 'passion'. Dispassionate = WITHOUT passion or emotion. Pure cool reason."},
+  {word:"Dissemble",def:"To conceal one's true motives or feelings; to pretend.",ex:"He dissembled his frustration with a polite smile, hiding his real thoughts.",trick:"'Dis' + 'semble' (seem, like 'resemble'). Dissemble = make yourself SEEM different from what you are."},
+  {word:"Dissonance",def:"A tension or clash resulting from the combination of two incompatible elements.",ex:"There was a clear dissonance between what he said and what he did.",trick:"'Dis' (apart) + 'son' (sound). Sounds that don't FIT together. Clash. Conflict."},
+  {word:"Dubious",def:"Hesitating or doubting; not to be relied upon; suspect.",ex:"I was dubious about his claim that he had climbed Everest without oxygen.",trick:"'Dub' = doubt (Latin 'dubius'). Dubious = FULL of doubt about something's truth."},
+  // E
+  {word:"Ebullient",def:"Cheerful and full of energy; exuberant.",ex:"Her ebullient greeting — arms wide, huge smile — made every visitor feel special.",trick:"'Ebull' = bubble (like 'ebullition'). Ebullient = BUBBLING over with joy and energy."},
+  {word:"Efficacious",def:"Successful in producing a desired or intended result; effective.",ex:"The new antibiotic proved efficacious against strains that had resisted older drugs.",trick:"'Effic' = effect + 'acious' (full of). Efficacious = FULL of the ability to produce an effect."},
+  {word:"Effrontery",def:"Insolent or shameless boldness; audacious impudence.",ex:"He had the effrontery to ask for a raise the same week he was caught slacking.",trick:"'Ef-FRONT-ery' — FRONT = face. Effrontery = getting in someone's FACE with shocking nerve."},
+  {word:"Egregious",def:"Outstandingly bad; shockingly wrong.",ex:"His egregious error cost the company five million dollars in one afternoon.",trick:"'E' (out) + 'greg' (flock/herd). Egregious = stands OUT from the herd — but in a terrible way."},
+  {word:"Eloquent",def:"Fluent and persuasive in speaking or writing.",ex:"Her eloquent speech moved half the audience to tears.",trick:"'E-LOQU-ent' — 'loqu' = speak (loquacious). Eloquent = speaking with beautiful, persuasive power."},
+  {word:"Emulate",def:"To try to match or surpass by imitation; to copy with the goal of equalling.",ex:"Young athletes dream of emulating their heroes' achievements.",trick:"'Emul' = rival (Latin). Emulate = RIVAL someone by copying and trying to BEAT them."},
+  {word:"Encomium",def:"A speech or piece of writing that praises someone highly.",ex:"The retiring professor received a glowing encomium from his former students.",trick:"'En' + 'comium' — think of a 'comic' who becomes praise. An encomium = a full, celebratory PRAISE song."},
+  {word:"Ephemeral",def:"Lasting for a very short time; transitory.",ex:"Social media fame is often ephemeral — trending today, forgotten tomorrow.",trick:"'Ephemer' from Greek 'epi-hemera' (lasting a day). Ephemeral = like a mayfly, living just ONE DAY."},
+  {word:"Equanimity",def:"Mental calmness, composure and evenness of temper, especially in difficult situations.",ex:"She faced the devastating diagnosis with remarkable equanimity.",trick:"'Equa' = equal + 'anim' (spirit/mind). Equanimity = an EQUAL, LEVEL mind under any pressure."},
+  {word:"Equivocate",def:"To use ambiguous language to conceal the truth or avoid commitment.",ex:"The politician equivocated for ten minutes without actually answering the question.",trick:"'Equi' = equal + 'voc' (voice). Equivocate = give EQUAL voice to both sides — say nothing definite."},
+  {word:"Erudite",def:"Having or showing great knowledge, especially from reading; scholarly.",ex:"Her erudite commentary on the ancient text impressed even the professors.",trick:"'Erud' from Latin 'erudire' (to educate). Erudite = educated to the HIGHEST level. Deeply learned."},
+  {word:"Esoteric",def:"Intended for or understood by only a small group with special knowledge.",ex:"The seminar covered esoteric topics that only specialists in the field could follow.",trick:"'Eso' = within/inner (Greek). Esoteric = knowledge kept INSIDE a small inner circle."},
+  {word:"Eulogy",def:"A speech or piece of writing praising someone, typically after their death.",ex:"His son delivered a moving eulogy that made the whole congregation weep.",trick:"'Eu' (good) + 'logy' (words/speech). Eulogy = GOOD WORDS spoken about someone. Beautiful tribute."},
+  {word:"Excoriate",def:"To censure or criticize severely; to damage or remove the skin of.",ex:"The editorial excoriated the government's handling of the housing crisis.",trick:"'Ex' + 'cori' (skin/hide). Excoriate = literally SKIN someone with criticism. Strip them bare."},
+  {word:"Exigent",def:"Pressing and demanding; requiring immediate attention or action.",ex:"The exigent circumstances of the flood left no time for lengthy deliberation.",trick:"'Exig' = drive out (Latin 'exigere'). Exigent = a situation that DRIVES you to act immediately."},
+  {word:"Exonerate",def:"To officially absolve from blame or a criminal charge.",ex:"DNA evidence exonerated the man who had spent 12 years in prison.",trick:"'Ex' (out of) + 'oner' (burden/blame). Exonerate = lift the burden of blame OFF someone."},
+  {word:"Expunge",def:"To erase or remove completely; to obliterate.",ex:"He petitioned the court to expunge his juvenile record.",trick:"'Ex' (out) + 'punge' (prick/puncture). Expunge = PUNCTURE and destroy the record. Poke it out of existence."},
+  {word:"Extol",def:"To praise enthusiastically; to laud.",ex:"Every article extolled the virtues of the new treatment.",trick:"'Ex' (out) + 'tol' (lift, like 'exalt'). Extol = LIFT something up out of the ordinary with praise."},
+  // F–G
+  {word:"Fallacious",def:"Based on a mistaken belief; misleading or deceptive.",ex:"His argument was fallacious — it sounded logical but rested on false premises.",trick:"'Fallac' = deceive (like 'fallacy'). Fallacious = FULL of fallacy. Built on false foundations."},
+  {word:"Fastidious",def:"Very attentive to accuracy and detail; hard to please; excessively particular.",ex:"She was fastidious about her research — every source triple-checked.",trick:"'Fasti' sounds like 'fussy'. Fastidious = FUSSY to the extreme about every tiny detail."},
+  {word:"Fatuous",def:"Silly and pointless; smugly foolish.",ex:"His fatuous suggestion that they 'just work harder' ignored the systemic problem.",trick:"'Fat' + 'uous' — a fat, smug fool. Fatuous = dumb in a self-satisfied, pompous way."},
+  {word:"Fecund",def:"Producing many offspring or new ideas; fertile and prolific.",ex:"She was fecund with ideas — barely a week passed without a new proposal.",trick:"'Fecund' sounds like 'fecundity' (fertility). Think of FECUND = fields full of crops. Abundantly fertile."},
+  {word:"Fervent",def:"Having or displaying a passionate intensity; ardent.",ex:"He was a fervent supporter of education reform throughout his career.",trick:"'Ferv' = boil (like 'fervor'). Fervent = BOILING with passion. Red-hot enthusiasm."},
+  {word:"Filibuster",def:"To obstruct legislation by making long speeches or other delaying tactics.",ex:"The senator filibustered for 14 hours to prevent the bill from coming to a vote.",trick:"'Fili-BUSTER' — to BUST (break) proceedings with endless talking. A verbal hijacking."},
+  {word:"Flagrant",def:"Conspicuously or obviously offensive; blatant.",ex:"It was a flagrant violation of the rules that everyone could see.",trick:"'Flagr' = blaze (Latin). Flagrant = BLAZING obviously. A fire you cannot pretend isn't there."},
+  {word:"Fledgling",def:"A person or organization that is immature, inexperienced or underdeveloped.",ex:"The fledgling company had potential but lacked the infrastructure to scale.",trick:"A fledgling is a baby bird just learning to fly. Fledgling = new, untested, still growing its wings."},
+  {word:"Florid",def:"Elaborately decorated; excessively complicated; red-faced.",ex:"His florid writing style — metaphor upon metaphor — exhausted the reader.",trick:"'Flor' = flower. Florid = FLOWERY. Over-decorated with too many ornamental touches."},
+  {word:"Foment",def:"To instigate or stir up (trouble or revolution); to arouse.",ex:"The pamphlets were designed to foment discontent among workers.",trick:"'Foment' sounds like 'ferment'. You FERMENT trouble, letting it bubble and brew into action."},
+  {word:"Forthright",def:"Direct and outspoken; straightforward and decisive.",ex:"He was refreshingly forthright — you always knew exactly where you stood.",trick:"'Forth' + 'right'. Forthright = going FORTH in the RIGHT direction — straight ahead, no detours."},
+  {word:"Furtive",def:"Attempting to avoid notice or attention; secretive and shifty.",ex:"He cast a furtive glance at the exam paper on the teacher's desk.",trick:"'Furtive' from Latin 'furtivus' (stolen). Furtive = like a THIEF — sneaky, quick, avoiding eyes."},
+  {word:"Garrulous",def:"Excessively talkative, especially on trivial matters.",ex:"The garrulous neighbour kept them on the doorstep for an hour with gossip.",trick:"'Garrul' = chatter (Latin). Garrulous = a GARGLING stream of talk that never stops."},
+  {word:"Grandiose",def:"Impressive in appearance but often excessively ambitious or pretentious.",ex:"His grandiose plans rarely came to fruition — he dreamed big but executed poorly.",trick:"'Grand' = big + '-iose' (overly). Grandiose = OVERLY GRAND. More impressive on paper than in reality."},
+  {word:"Gratuitous",def:"Uncalled for; lacking good reason; given freely without payment.",ex:"The film was filled with gratuitous violence that added nothing to the story.",trick:"'Gratu' = free (like 'gratuity'). Gratuitous = given for FREE — but here it's FREE from purpose or justification."},
+  {word:"Gregarious",def:"Fond of company; sociable; (of animals) living in flocks or colonies.",ex:"As an introvert, I envied her gregarious nature at parties.",trick:"'Gregar' = flock/herd (Latin). Gregarious = loves being in the HERD. A social animal at heart."},
+  {word:"Guile",def:"Clever but dishonest behaviour; cunning and deceit.",ex:"He used guile rather than force to outmanoeuvre his rivals.",trick:"'Guile' rhymes with 'wile' (trick). Think of a wiley fox — full of GUILE and tricks."},
+  // H–I
+  {word:"Harangue",def:"A lengthy, aggressive speech; to lecture aggressively.",ex:"The coach harangued the team for their sloppy play in the first quarter.",trick:"'Harangue' — imagine someone in a RANGE (open field) HARING (running wild) with angry words at you."},
+  {word:"Hegemony",def:"Leadership or dominance, especially of one country or group over others.",ex:"The nation's economic hegemony allowed it to set global trade terms.",trick:"'Hegemon' = leader (Greek). Hegemony = the LEAD DOG's dominance over all others in the pack."},
+  {word:"Heresy",def:"Belief or opinion contrary to orthodox religious doctrine; any controversial or unorthodox view.",ex:"Suggesting the company reduce its growth targets was heresy to the board.",trick:"'Here-sy' — the heretic says 'I'll do it HERE my way', not the accepted way. Defying the norm."},
+  {word:"Hubris",def:"Excessive pride or self-confidence; arrogance that leads to downfall.",ex:"His hubris in assuming he'd win without campaigning cost him the election.",trick:"'Hubris' is Greek for 'excessive pride'. Think of HUGE BRIS (big + pride). It always leads to a fall."},
+  {word:"Hyperbole",def:"Exaggerated statements or claims not meant to be taken literally.",ex:"'I've told you a million times' is a classic hyperbole — it wasn't literally a million.",trick:"'Hyper' = over + 'bole' (throw). Hyperbole = throwing an idea OVER the top. Wild exaggeration."},
+  {word:"Iconoclast",def:"A person who attacks cherished beliefs or institutions; a radical non-conformist.",ex:"The iconoclast scientist challenged decades of accepted theory and was eventually proved right.",trick:"'Icon' (sacred image) + 'clast' (breaker, like 'iconoclasm'). An iconoclast SMASHES sacred images. Breaks traditions."},
+  {word:"Idiosyncratic",def:"Peculiar or individual; relating to one's own distinctive characteristics.",ex:"Her idiosyncratic filing system — by colour and mood — baffled everyone but worked perfectly for her.",trick:"'Idio' = personal/one's own (like 'idiot' originally meant 'private person'). Idiosyncratic = UNIQUELY your own quirk."},
+  {word:"Ignominious",def:"Deserving or causing public disgrace or shame.",ex:"The team suffered an ignominious defeat, losing 9–0 in front of their home crowd.",trick:"'Ig' (not) + 'nomin' (name/reputation). Ignominious = your NAME is dragged through mud. Shameful."},
+  {word:"Impartial",def:"Treating all rivals or disputants equally; fair and just.",ex:"The mediator was scrupulously impartial, giving both sides equal time.",trick:"'Im' (not) + 'partial'. Impartial = NOT taking a PART (side). Standing equally in the middle."},
+  {word:"Impecunious",def:"Having little or no money; poor.",ex:"As an impecunious student, he ate rice and beans for most of the semester.",trick:"'Im' (not) + 'pecun' (money, like 'pecuniary'). Impecunious = NOT having PECUNIARY resources. Broke."},
+  {word:"Imperturbable",def:"Unable to be upset or excited; calm at all times.",ex:"The hostage negotiator remained imperturbable even as the situation escalated.",trick:"'Im' (not) + 'perturb' (disturb). Imperturbable = CANNOT be disturbed. A perfectly still pond."},
+  {word:"Impetuous",def:"Acting or done quickly and without thought; impulsive.",ex:"His impetuous decision to quit on the spot was one he regretted for years.",trick:"'Impet' = rush (Latin 'impetus' = force). Impetuous = rushing forward with unstoppable force. No brakes."},
+  {word:"Impugn",def:"To dispute the truth, validity or honesty of; to call into question.",ex:"The defence lawyer impugned the witness's credibility with a prior conviction.",trick:"'Im' + 'pugn' (fight, like 'pugnacious'). Impugn = FIGHT against the truth of something. Attack its validity."},
+  {word:"Inchoate",def:"Just begun and not fully formed or developed; undeveloped.",ex:"He had only an inchoate plan — more a feeling than a strategy.",trick:"'In' + 'choate' (to begin in Latin). Inchoate = only just BEGUN. Still a rough sketch, not a painting."},
+  {word:"Incisive",def:"Intelligently analytical and clear-thinking; sharp and direct.",ex:"Her incisive questions cut straight to the heart of the problem.",trick:"'Incis' = cut (like 'incision'). Incisive = CUT right through to the truth. Sharp as a scalpel."},
+  {word:"Incongruous",def:"Not in harmony or keeping with the surroundings; out of place.",ex:"The skyscraper looked incongruous next to the medieval cathedral.",trick:"'In' (not) + 'congru' (agree together). Incongruous = things that DON'T AGREE. A mismatch."},
+  {word:"Indolent",def:"Wanting to avoid activity or exertion; habitually lazy.",ex:"His indolent approach to revision left him scrambling the night before the exam.",trick:"'In' (not) + 'dol' (pain, Latin). Indolent = WITHOUT the pain of effort. Too comfortable to work."},
+  {word:"Ineffable",def:"Too great or extreme to be expressed or described in words.",ex:"Standing at the edge of the Grand Canyon, she felt an ineffable sense of smallness.",trick:"'In' (not) + 'eff-able' (able to be said, from 'effari'). Ineffable = CANNOT BE SAID. Beyond words."},
+  {word:"Inimical",def:"Tending to obstruct or harm; unfriendly; hostile.",ex:"Smoking is inimical to good health — the evidence is overwhelming.",trick:"'Inimi' sounds like 'enemy'. Inimical = ENEMY-like. Something that acts like an enemy toward you."},
+  {word:"Iniquity",def:"Immoral or grossly unfair behaviour; wickedness.",ex:"He devoted his life to exposing the iniquity of the corrupt justice system.",trick:"'In' (not) + 'equity' (fairness). Iniquity = the ABSENCE of equity. Pure injustice and wickedness."},
+  {word:"Insipid",def:"Lacking flavour; lacking vigour or interest; dull.",ex:"The insipid soup tasted of warm water with a hint of disappointment.",trick:"'In' (without) + 'sipid' (taste, like 'sapid'). Insipid = WITHOUT TASTE. Flat, dull, flavorless."},
+  {word:"Intransigent",def:"Unwilling to change one's views or agree to a compromise; stubborn.",ex:"Negotiations collapsed because both sides were intransigent.",trick:"'In' (not) + 'transig' (transact/make a deal). Intransigent = WILL NOT MAKE A DEAL. Immovably stubborn."},
+  {word:"Inveterate",def:"Having a habit, activity or interest so deeply established that it is unlikely to change.",ex:"He was an inveterate traveller, rarely spending more than two months in one place.",trick:"'In' + 'veter' (old, like veteran). Inveterate = so OLD and DEEP-rooted it can't be removed."},
+  {word:"Irascible",def:"Having or showing a tendency to be easily angered; irritable.",ex:"The irascible director screamed at anyone who arrived even a minute late.",trick:"'Irasc' from 'ira' (anger, like 'irate'). Irascible = CATCHES FIRE with anger easily. Short fuse."},
+  // L–M
+  {word:"Laud",def:"To praise highly; to glorify.",ex:"Critics lauded the novel as a masterwork of contemporary fiction.",trick:"'Laud' sounds like 'laud-able'. LOUD praise. To laud = to shout great praise."},
+  {word:"Loquacious",def:"Tending to talk a great deal; talkative.",ex:"Her loquacious roommate made it impossible to study in silence.",trick:"'Loqu' = speak (Latin). Loquacious = speaks and speaks and speaks. A talking machine."},
+  {word:"Lucid",def:"Expressed clearly; easy to understand; mentally clear.",ex:"Despite the complexity of quantum physics, her explanation was remarkably lucid.",trick:"'Lucid' from 'lux' (light). Lucid = ILLUMINATED. Crystal clear like a lit-up room."},
+  {word:"Malleable",def:"Easily influenced; capable of being shaped; adaptable.",ex:"Young minds are malleable — what children learn early tends to stay with them.",trick:"'Malle' = hammer (a mallet). Malleable = can be HAMMERED into any shape. Flexible."},
+  {word:"Mendacious",def:"Not telling the truth; lying.",ex:"The mendacious witness contradicted himself three times under cross-examination.",trick:"'Mendac' = lie (Latin 'mendacium'). Mendacious = a lie-machine. Professionally dishonest."},
+  {word:"Mercurial",def:"Subject to sudden or unpredictable changes of mood; volatile.",ex:"His mercurial temperament made him brilliant but exhausting to work with.",trick:"Mercury (the planet/element) moves FAST and unpredictably. Mercurial = quick-shifting, volatile."},
+  {word:"Meticulous",def:"Showing great attention to detail; very careful and precise.",ex:"She was meticulous in her lab work — every measurement logged to four decimal places.",trick:"'Meti' from 'metus' (fear in Latin). Meticulous = once so FEARFUL of mistakes that every detail was checked obsessively."},
+  {word:"Mitigate",def:"To make less severe, serious or painful; to lessen.",ex:"The judge considered his clean record as a factor to mitigate the sentence.",trick:"'Miti' = mild + 'gate'. Mitigate = open the GATE to let severity OUT. Make it milder."},
+  {word:"Mollify",def:"To appease the anger or anxiety of someone; to soften.",ex:"He tried to mollify the angry customer with a full refund.",trick:"'Molli' = soft (like 'mollusk' = soft-bodied). Mollify = SOFTEN someone's anger. Make them go soft."},
+  {word:"Moot",def:"Subject to debate, dispute or uncertainty; of little or no practical value.",ex:"Whether we should have left earlier is now moot — we've already missed the flight.",trick:"'Moot' court = debate practice. Moot = only good for debate, no practical value anymore. Academic."},
+  {word:"Mundane",def:"Lacking interest or excitement; dull; of this earthly world rather than heavenly.",ex:"He found the mundane tasks of admin soul-crushing after years of fieldwork.",trick:"'Munde' = world (Latin, like 'monde'). Mundane = worldly, ordinary, earthly. Not transcendent at all."},
+  // N–O
+  {word:"Nefarious",def:"Wicked, criminal and immoral.",ex:"The nefarious scheme involved bribing officials at every level of government.",trick:"'Nefar' from 'nefas' (crime in Latin). Nefarious = CRIMINAL to the core. Evil in an organized way."},
+  {word:"Nonchalant",def:"Feeling or appearing casually calm and relaxed; not showing anxiety.",ex:"He was nonchalant about the presentation, shrugging when others asked if he was nervous.",trick:"'Non' + 'chalant' (warm, from 'chaleur'). Nonchalant = NOT heating up (not getting worked up). Cool."},
+  {word:"Obsequious",def:"Obedient or attentive to an excessive or servile degree; fawning.",ex:"The obsequious waiter agreed with everything the difficult customer said.",trick:"'Ob' + 'sequ' (follow). Obsequious = FOLLOWS along with everything you say. Sycophantic shadow."},
+  {word:"Obstinate",def:"Stubbornly refusing to change one's opinion or chosen course of action.",ex:"Despite all the evidence, she remained obstinate in her original view.",trick:"'Ob' (against) + 'stinate' (stand). Obstinate = STANDS AGAINST change. A boulder that won't move."},
+  {word:"Obtuse",def:"Annoyingly insensitive or slow to understand; not sharp.",ex:"He was being deliberately obtuse, pretending not to understand the simple request.",trick:"In geometry, an obtuse angle is BLUNT (over 90°). Obtuse person = BLUNT mind. Not sharp."},
+  {word:"Ominous",def:"Giving the impression that something bad is about to happen; threatening.",ex:"The ominous silence before the storm kept everyone indoors.",trick:"'Omen' is inside! Ominous = full of BAD OMENS. A sign of doom on the horizon."},
+  {word:"Opaque",def:"Not transparent; not clearly understood or expressed; unclear.",ex:"The government's opaque decision-making process frustrated citizens.",trick:"'Opaque' is the OPPOSITE of transparent. Like frosted glass — you CANNOT see through it."},
+  {word:"Opprobrium",def:"Harsh criticism or public disgrace; the state of being condemned.",ex:"The CEO faced public opprobrium after the company's environmental violations were exposed.",trick:"'Op' (against) + 'probr' (disgrace). Opprobrium = the disgrace thrown AGAINST you by the public."},
+  {word:"Oscillate",def:"To move or swing back and forth between positions; to waver.",ex:"He oscillated between enthusiasm and despair throughout the project.",trick:"'Oscill' = swing (like oscillation in physics). Oscillate = swing like a PENDULUM. Back and forth."},
+  // P–R
+  {word:"Pedantic",def:"Overly concerned with minor details or rules; petty in academic learning.",ex:"His pedantic insistence on footnote formatting delayed the report by two days.",trick:"'Pedant' = an overly strict teacher. Pedantic = acting like that teacher who corrects EVERYTHING. Miss the forest for the trees."},
+  {word:"Penchant",def:"A strong or habitual liking for something; a tendency.",ex:"She had a penchant for taking on more projects than she could possibly finish.",trick:"'Pench' from French 'pencher' (to lean). Penchant = leaning TOWARD something consistently."},
+  {word:"Penury",def:"Extreme poverty; destitution.",ex:"After the lawsuit, he was reduced to penury and had to sell everything he owned.",trick:"'Penury' sounds like 'penny-ury' — a state of having only PENNIES. Extreme poverty."},
+  {word:"Perfidious",def:"Deceitful and untrustworthy; guilty of betrayal.",ex:"The perfidious ally signed a secret deal with the enemy while professing loyalty.",trick:"'Perfi' from 'perfidia' (treachery). Per = through + fide (faith). Perfidious = THROUGH and against FAITH. A traitor."},
+  {word:"Perfunctory",def:"Done with minimum effort; carried out as a routine duty.",ex:"The doctor gave a perfunctory examination — barely two minutes — and sent him home.",trick:"'Per' (through) + 'funct' (function). Perfunctory = just getting THROUGH the function. Ticking a box."},
+  {word:"Permeate",def:"To spread throughout; to pervade.",ex:"The smell of fresh bread permeated the entire building.",trick:"'Perme' from 'permeare' (pass through). Permeate = pass THROUGH every corner of something."},
+  {word:"Pervasive",def:"Spreading widely throughout an area or group; omnipresent.",ex:"Misinformation has become pervasive in the age of social media.",trick:"'Per' (through) + 'vas' (vessel/go). Pervasive = goes THROUGH every vessel of a system. Everywhere."},
+  {word:"Phlegmatic",def:"Having an unemotional and stolidly calm disposition.",ex:"He was phlegmatic in a crisis — steady, methodical, never panicking.",trick:"'Phlegm' = one of the four bodily humours associated with calm, coolness. Phlegmatic = cool and calm as cold phlegm."},
+  {word:"Placate",def:"To make someone less angry or hostile; to pacify.",ex:"She brought coffee and apologies to placate her frustrated colleague.",trick:"'Plac' = please/calm (like 'placid'). Placate = make someone PLACID again. Calm the storm."},
+  {word:"Platitude",def:"A remark or statement that is overused to the point of being meaningless.",ex:"\"Everything happens for a reason\" is a platitude that rarely helps grieving people.",trick:"'Plat' = flat (like a plateau). Platitude = FLAT, boring words. Nothing new, nothing deep."},
+  {word:"Pliable",def:"Easily bent; easily influenced; adaptable.",ex:"Children's minds are pliable — they adapt quickly to new languages.",trick:"'Pli' = fold/bend (like 'pliers'). Pliable = can be BENT and shaped easily without breaking."},
+  {word:"Pragmatic",def:"Dealing with things sensibly and realistically rather than theoretically.",ex:"Rather than debating ideal solutions, she took a pragmatic approach and fixed what she could.",trick:"'Pragma' = action (Greek). Pragmatic = focused on ACTION, not ideals. What WORKS matters most."},
+  {word:"Precipitate",def:"To cause something to happen suddenly and prematurely; hasty; rash.",ex:"His precipitate decision to resign shocked the board.",trick:"'Precipit' = fall headlong (Latin). Precipitate = FALLING into action without looking first. Headlong rush."},
+  {word:"Prevaricate",def:"To speak or act evasively; to avoid giving a direct answer.",ex:"When asked about the missing funds, the treasurer prevaricated for twenty minutes.",trick:"'Pre' + 'varic' (straddle, walk crookedly). Prevaricate = walk CROOKEDLY around the truth. Swerving."},
+  {word:"Prodigal",def:"Spending money or resources freely and recklessly; wasteful.",ex:"His prodigal spending on luxuries left him bankrupt within two years.",trick:"'Prodig' = drive forward (Latin). Prodigal = drives resources FORWARD and OUT the door. Reckless giver."},
+  {word:"Proliferate",def:"To increase rapidly in numbers; to multiply.",ex:"Misinformation proliferates fastest in the absence of credible journalism.",trick:"'Prolif' = offspring (Latin). Proliferate = produce so many OFFSPRING that numbers EXPLODE."},
+  {word:"Propitious",def:"Giving or indicating a good chance of success; favourable.",ex:"The clear skies seemed propitious for the launch.",trick:"'Propiti' = favourable (Latin). Propitious = the universe is saying PROCEED — good signs everywhere."},
+  {word:"Prosaic",def:"Having the style of prose; commonplace; unromantic or dull.",ex:"His prosaic response to her romantic gesture disappointed her greatly.",trick:"'Prose' is inside! Prosaic = like plain PROSE, not poetry. Dull, literal, unimaginative."},
+  {word:"Puerile",def:"Childishly silly and immature.",ex:"The puerile jokes in the presentation undermined his credibility completely.",trick:"'Puer' = boy/child (Latin). Puerile = childish, like a LITTLE BOY who hasn't grown up yet."},
+  {word:"Quandary",def:"A state of uncertainty; a difficult situation where a choice must be made.",ex:"She was in a quandary about whether to report her colleague or stay silent.",trick:"'Quand' sounds like 'when'. A quandary = stuck in 'WHEN will I decide? WHAT do I do?' Unable to choose."},
+  {word:"Querulous",def:"Complaining in a petulant or whining manner.",ex:"He had grown querulous in old age, finding fault with everything.",trick:"'Quer' = complain (like 'query' = question/complain). Querulous = QUERYING and complaining non-stop."},
+  {word:"Recalcitrant",def:"Having an obstinately uncooperative attitude; resistant to authority.",ex:"The recalcitrant student refused to apologise despite being in the wrong.",trick:"'Re' (back) + 'calcitr' (kick, Latin). Recalcitrant = KICKS BACK against authority. A stubborn mule."},
+  {word:"Recondite",def:"Not known by many people; obscure and abstruse.",ex:"The professor's recondite knowledge of medieval dialects was unmatched.",trick:"'Recon-DITE' — reconDITE = hidden away. Like a rare gem CONDITioned (hidden) in a deep cave."},
+  {word:"Rectitude",def:"Morally correct behaviour or thinking; righteousness.",ex:"Her rectitude was beyond question — she refused every offer that might compromise her integrity.",trick:"'Rect' = straight (like rectangle). Rectitude = STRAIGHT morally. Standing upright with perfect ethics."},
+  {word:"Refute",def:"To prove a statement or theory to be wrong or false.",ex:"The scientist refuted the popular theory with three years of experimental data.",trick:"'Re' + 'fute' (beat back). Refute = BEAT BACK a claim with evidence. Knock it down completely."},
+  {word:"Remonstrate",def:"To make a forcefully reproachful protest; to argue in objection.",ex:"She remonstrated with the manager about the unfair treatment of junior staff.",trick:"'Re' + 'monstr' (show/demonstrate). Remonstrate = SHOW your disapproval loudly. A visible protest."},
+  {word:"Repudiate",def:"To refuse to accept or be associated with; to deny the truth of.",ex:"He repudiated any link to the scandal, calling the allegations fabricated.",trick:"'Re' + 'pudiat' (ashamed, Latin). Repudiate = push away with shame. REFUSE to be associated."},
+  {word:"Reticent",def:"Not revealing one's thoughts or feelings readily; reserved.",ex:"She was reticent about her past, rarely sharing personal details.",trick:"'Retic' = keep silent (Latin). Reticent = a person who KEEPS SILENT. Holds back words."},
+  {word:"Rhetoric",def:"The art of effective speaking and writing; language that is elaborate but often lacking substance.",ex:"His speech was impressive rhetoric but contained no concrete policy proposals.",trick:"'Rhetor' = orator (Greek). Rhetoric = the ORATOR'S art. Can be powerful OR empty showmanship."},
+  {word:"Rigorous",def:"Extremely thorough and careful; adhering strictly to standards.",ex:"The clinical trial followed a rigorous methodology to eliminate all bias.",trick:"'Rigor' = stiffness (like 'rigor mortis'). Rigorous = STIFF adherence to standards. No flexibility allowed."},
+  // S
+  {word:"Sacrosanct",def:"Too important or valuable to be interfered with; treated as if sacred.",ex:"Their Saturday family dinner was sacrosanct — nothing was allowed to disrupt it.",trick:"'Sacro' (sacred) + 'sanct' (holy). Sacrosanct = DOUBLY holy. Sacred and sanctified. Untouchable."},
+  {word:"Salient",def:"Most noticeable or important; prominent.",ex:"The most salient point in her argument was the cost projection.",trick:"'Sali' = leap (Latin). The salient point LEAPS out at you. It jumps up and demands attention."},
+  {word:"Sanguine",def:"Optimistic, especially in a difficult situation; blood-red.",ex:"Despite the setbacks, she remained sanguine about their chances of success.",trick:"'Sangui' = blood (Latin). Sanguine = blood-red warmth. Warm, rosy optimism. Full of life-blood."},
+  {word:"Sardonic",def:"Grimly mocking or cynical in a dry way.",ex:"His sardonic humour — always a smirk, never a laugh — unsettled new colleagues.",trick:"'Sardonic' from Greek 'sardonios' (bitter Sardinian herb). Sardonic = bitter, dry, twisted smile."},
+  {word:"Scrupulous",def:"Very careful about doing what is honest and morally right.",ex:"She was scrupulous about citing every source, never claiming credit for others' ideas.",trick:"'Scruple' = a unit of doubt/conscience. Scrupulous = someone whose CONSCIENCE weighs every action."},
+  {word:"Sedulous",def:"Showing dedication and diligence; assiduous.",ex:"The sedulous student revised every topic three times before the exam.",trick:"'Sed' (without) + 'dolus' (trickery). Sedulous = WITH NO TRICKS. Just pure, honest hard work."},
+  {word:"Solipsistic",def:"Holding the view that only one's own mind is real; self-centered.",ex:"His solipsistic worldview made it impossible for him to empathize with others.",trick:"'Solus' (alone) + 'ipse' (self). Solipsistic = alone with the SELF. Only I exist. A universe of one."},
+  {word:"Soporific",def:"Tending to induce drowsiness or sleep; sleep-inducing.",ex:"The professor's monotone delivery was so soporific that half the class dozed off.",trick:"'Sopor' = deep sleep (Latin). Soporific = produces SOPOR. Like a verbal sleeping pill."},
+  {word:"Specious",def:"Superficially plausible but actually wrong; misleadingly attractive.",ex:"His argument sounded compelling but was in fact specious — the data didn't support it.",trick:"'Spec' = appearance. Specious = looks GOOD on the surface but is false inside. A shiny rotten apple."},
+  {word:"Spurious",def:"Not genuine; false; based on false reasoning.",ex:"The company rejected the spurious claims made in the competitor's advertisement.",trick:"'Spuri' = bastard (Latin). Spurious = an ILLEGITIMATE claim. False by birth."},
+  {word:"Stoic",def:"Enduring pain and hardship without complaining; emotionally resilient.",ex:"She was stoic during her treatment, never complaining despite the discomfort.",trick:"The Stoics were ancient Greek philosophers who taught ENDURANCE. Stoic = their human embodiment."},
+  {word:"Strident",def:"Loud and harsh; presenting a point of view in an excessively forceful way.",ex:"The strident demands from protesters could be heard three blocks away.",trick:"'Strid' = harsh noise (like 'stride-nt' scraping). Strident = a HARSH, GRATING voice that cuts through."},
+  {word:"Subjugate",def:"To bring under domination or control; to conquer.",ex:"The empire sought to subjugate all neighbouring tribes.",trick:"'Sub' (under) + 'jug' (yoke). Subjugate = put someone under the YOKE. Make them bow under you."},
+  {word:"Substantiate",def:"To provide evidence to support or prove the truth of something.",ex:"The journalist could not substantiate her claims, so the story was pulled.",trick:"'Sub' + 'stantia' (substance). Substantiate = give SUBSTANCE to a claim. Fill it with real proof."},
+  {word:"Subtle",def:"So delicate or precise as to be difficult to analyse; not obvious.",ex:"The subtle difference between the two proposals was missed by most of the committee.",trick:"'Subtle' from Latin 'subtilis' (fine-woven). Subtle = so finely WOVEN you barely see the threads."},
+  {word:"Supercilious",def:"Behaving as if one is superior; contemptuous; disdainful.",ex:"His supercilious manner made him universally disliked despite his obvious talent.",trick:"'Supercili' = eyebrow (Latin). Supercilious = RAISED EYEBROW — looking down your nose at people."},
+  {word:"Superfluous",def:"Unnecessary; more than what is needed or wanted.",ex:"The lengthy introduction was superfluous — the audience already knew the background.",trick:"'Super' (over) + 'flu' (flow). Superfluous = OVERFLOWING past what's needed. Extra waste."},
+  {word:"Sycophant",def:"A person who flatters and agrees with important people to gain favour; a toady.",ex:"The CEO was surrounded by sycophants who never challenged his decisions.",trick:"'Syco' sounds like 'sicko' + 'phant' (show). A sycophant SHOWS fake adoration for personal gain."},
+  // T–Z
+  {word:"Taciturn",def:"Reserved or uncommunicative in speech; saying little.",ex:"He was famously taciturn in interviews — journalists had to work hard for quotes.",trick:"'Tacit' = silent (like 'tacit agreement' = silent agreement). Taciturn = naturally SILENT. A closed vault."},
+  {word:"Tangential",def:"Barely touching a subject; peripheral; only slightly related.",ex:"Her comment was interesting but tangential — it didn't address the core issue.",trick:"A TANGENT barely touches a circle at one point. Tangential = barely TOUCHING the main topic."},
+  {word:"Tenacious",def:"Tending to hold firmly to something; persistent and determined.",ex:"Despite rejections, her tenacious pursuit of the role eventually paid off.",trick:"'Ten' = hold (Latin 'tenere'). Tenacious = holds ON with an iron grip. Won't let go."},
+  {word:"Terse",def:"Sparing with words; abrupt; using few words.",ex:"His terse reply — 'Noted.' — ended the email chain immediately.",trick:"'Terse' = trimmed, polished (Latin). Terse = TRIMMED of all excess words. Short and sharp."},
+  {word:"Torpor",def:"A state of physical or mental inactivity; lethargy.",ex:"The oppressive afternoon heat left everyone in a state of torpor.",trick:"'Torp' = numb (like 'torpedo' which stuns). Torpor = NUMBED into stillness. Motionless lethargy."},
+  {word:"Tortuous",def:"Full of twists and turns; excessively complex.",ex:"The tortuous mountain road required full concentration at every bend.",trick:"'Tortu' = twist (like torture = twisting pain). Tortuous = TWISTED, winding, never straight."},
+  {word:"Tractable",def:"Easy to deal with or control; docile.",ex:"The tractable horse responded immediately to the gentlest command.",trick:"'Tract' = pull/drag (like 'tractor'). Tractable = easily PULLED in any direction. Cooperative."},
+  {word:"Transient",def:"Lasting only for a short time; temporary.",ex:"The joy of revenge is transient — it fades and leaves you emptier.",trick:"'Trans' = across + 'ient' (going). Transient = just PASSING THROUGH. Here today, gone tomorrow."},
+  {word:"Trepidation",def:"A feeling of fear or anxiety about something that may happen.",ex:"She entered the interview room with trepidation, her hands trembling.",trick:"'Trepid' = trembling (Latin). Trepidation = TREMBLING with fear and dread before something."},
+  {word:"Truculent",def:"Eager or quick to argue or fight; aggressively defiant.",ex:"The truculent child argued back at every instruction his teacher gave.",trick:"'Truc' sounds like 'truck' that RAMS things. Truculent = aggressively RAMMING into confrontation."},
+  {word:"Turgid",def:"Swollen and congested; (of language) pompous and tedious.",ex:"The turgid report was padded with jargon to disguise its lack of substance.",trick:"'Turgid' from 'turgere' (to swell). Turgid = SWOLLEN with pomposity. Bloated with empty words."},
+  {word:"Turpitude",def:"Wickedness and depravity; corrupt behaviour.",ex:"He was dismissed for moral turpitude — the scandal left no room for him to stay.",trick:"'Turp' = base/filthy (Latin 'turpis'). Turpitude = the FILTHIEST depths of moral corruption."},
+  {word:"Umbrage",def:"Offence or annoyance; a sense of being slighted.",ex:"She took umbrage at the suggestion that her work was derivative.",trick:"'Umbr' = shadow (like umbrella). Umbrage = being PUT IN THE SHADE. Feeling overshadowed and offended."},
+  {word:"Unequivocal",def:"Leaving no doubt; clear and unambiguous.",ex:"The CEO's unequivocal statement left no room for speculation about the merger.",trick:"'Un' + 'equivoc' (two voices). Unequivocal = ONE voice only. No two ways about it. Crystal clear."},
+  {word:"Vacillate",def:"To waver between different opinions or actions; to be indecisive.",ex:"He vacillated so long between the two options that the deadline passed.",trick:"'Vacill' = sway (Latin). Vacillate = SWAY back and forth like a tree in the wind. Perpetually undecided."},
+  {word:"Venerate",def:"To regard with great respect; to revere.",ex:"The community venerated the elder as a keeper of their history and traditions.",trick:"'Vener' = reverence (like 'venerable'). Venerate = treat with the kind of awe you'd give a SAINT."},
+  {word:"Verbose",def:"Using more words than necessary; wordy.",ex:"His verbose emails always took three paragraphs to say what could be said in one sentence.",trick:"'Verb' = word. Verbose = OVERFLOWING with verbs and words. Way too many words. Word-vomit."},
+  {word:"Vicarious",def:"Experienced in the imagination through the feelings or actions of another person.",ex:"She lived vicariously through her daughter's travels, reading every postcard eagerly.",trick:"'Vicar' = substitute (a vicar acts FOR the bishop). Vicarious = experiencing something THROUGH another, as a substitute."},
+  {word:"Vindicate",def:"To clear someone of blame or suspicion; to show to be right or justified.",ex:"The audit vindicated her completely — the error had been made by the previous manager.",trick:"'Vindi' = avenge/claim (Latin). Vindicate = CLAIM BACK your good name. Justice restores your honour."},
+  {word:"Virulent",def:"Extremely harmful or dangerous; bitterly hostile.",ex:"The virulent strain of flu spread rapidly through the school.",trick:"'Viru' = poison/virus. Virulent = like a VIRUS — aggressive, spreading fast, deadly hostile."},
+  {word:"Volatile",def:"Liable to change rapidly and unpredictably; explosive.",ex:"The volatile situation required careful diplomatic handling to avoid escalation.",trick:"'Vol' = fly (Latin 'volare'). Volatile = things that FLY UP suddenly. Explosive and unpredictable."},
+  {word:"Wanton",def:"Deliberate and unprovoked; showing no care for harm caused; sexually unrestrained.",ex:"The wanton destruction of the ancient murals was an act of pure vandalism.",trick:"'Want-on' — wanton = wanting harm and acting ON it with no justification. Pure selfish destruction."},
+  {word:"Zealous",def:"Having or showing great energy or enthusiasm in pursuit of a cause.",ex:"She was a zealous advocate for animal rights, rarely taking a day off from campaigning.",trick:"'Zeal' is the root! Zealous = overflowing with ZEAL. On fire for the cause, night and day."},
+  // ── BATCH 2: HIGH-FREQUENCY GRE ──
+  // A
+  {word:"Abrogate",def:"To repeal or abolish a law, right or formal agreement.",ex:"The new government moved swiftly to abrogate the controversial treaty.",trick:"'Ab' (away) + 'rogate' (ask/enact law). Abrogate = REMOVE the law that was enacted."},
+  {word:"Acumen",def:"The ability to make good judgements and quick decisions; shrewdness.",ex:"Her financial acumen made her the obvious choice to lead the new division.",trick:"'Acumen' = 'a-CURE-men'. Someone with acumen finds the CURE quickly. Sharp mind, fast answers."},
+  {word:"Adroit",def:"Clever or skilful in a specific way; dexterous.",ex:"The adroit negotiator secured a deal both parties were happy with.",trick:"'A-DROIT' — 'droit' = right (French). Adroit = using the right skill at the right moment. Expertly clever."},
+  {word:"Alleviate",def:"To make suffering, deficiency or problem less severe.",ex:"Cold compresses can alleviate the swelling from a sprained ankle.",trick:"'Allevi' = lighten (Latin 'levis' = light). Alleviate = LIGHTEN the burden. Make the heavy lighter."},
+  {word:"Ambivalence",def:"The state of having mixed or contradictory feelings about something.",ex:"His ambivalence about the promotion was clear — he wanted it but feared the responsibility.",trick:"'Ambi' = both. Ambivalence = holding BOTH feelings at once. You are pulled in two directions."},
+  {word:"Amiable",def:"Having a friendly and pleasant manner; likeable.",ex:"Her amiable disposition meant she made friends within minutes wherever she went.",trick:"'Ami' = friend (French 'ami'). Amiable = friend-like. You naturally WANT to be around them."},
+  {word:"Amorphous",def:"Without a clearly defined shape or form; vague and ill-organised.",ex:"The project had an amorphous structure — no deadlines, no clear deliverables.",trick:"'A' (without) + 'morph' (shape). Amorphous = WITHOUT SHAPE. A formless blob."},
+  {word:"Antagonize",def:"To cause someone to become hostile; to provoke.",ex:"His condescending tone antagonized the very people he was trying to win over.",trick:"'Antagon' = opponent in Greek. Antagonize = turn someone INTO an opponent against you."},
+  {word:"Antithesis",def:"The direct opposite of something; a contrast or opposition.",ex:"His gentle speech was the antithesis of the fiery rhetoric the crowd expected.",trick:"'Anti' (against) + 'thesis' (argument). Antithesis = the AGAINST-argument. The total opposite."},
+  {word:"Apposite",def:"Apt and to the point; strikingly appropriate to the situation.",ex:"Her apposite quote from Lincoln summed up the whole debate in twelve words.",trick:"'Appos' = apt/placed near. Apposite = PLACED perfectly. The right thing at the right moment."},
+  {word:"Appropriate",def:"To take something for one's own use without permission; to set aside for a purpose.",ex:"The committee appropriated funds for the new library wing.",trick:"'Appro-PRIATE' — a pirate TAKES things. Appropriate (verb) = TAKE or seize something for yourself."},
+  {word:"Apt",def:"Appropriate or suitable in the circumstances; having a tendency to.",ex:"Her apt summary captured weeks of debate in a single sentence.",trick:"Short, sharp, fits perfectly — just like the word APT itself. Three letters, total precision."},
+  {word:"Ardent",def:"Very enthusiastic or passionate about something.",ex:"He was an ardent believer in the power of education to transform lives.",trick:"'Ard' = burning (ardor = fire). Ardent = on FIRE with passion. Flames of enthusiasm."},
+  {word:"Arrogate",def:"To take or claim something without justification; to act as if entitled.",ex:"She arrogated the credit for work done by the entire team.",trick:"'Arro-gate' — open the GATE and walk in without permission. Arrogate = take what isn't yours."},
+  {word:"Artisan",def:"A worker skilled in a particular craft; someone who makes things by hand with expertise.",ex:"The cheese was made by a local artisan using centuries-old techniques.",trick:"'Artis' = art + 'an' (person). An artisan = a person who turns craft into ART."},
+  // B
+  {word:"Belie",def:"To fail to give a true impression of; to contradict or disguise.",ex:"Her cheerful smile belied the anxiety she felt inside.",trick:"'Be-LIE' — to LIE about what something really is. It LIES about the truth beneath."},
+  {word:"Benevolent",def:"Well-meaning and kindly; generous in giving; charitable.",ex:"The benevolent donor gave anonymously, expecting nothing in return.",trick:"'Bene' (well) + 'vol' (wish/want). Benevolent = WISHING WELL for everyone. Goodwill in action."},
+  {word:"Bombastic",def:"High-sounding but with little meaning; inflated and pompous.",ex:"The politician's bombastic promises evaporated the moment he took office.",trick:"'Bomb-astic' — words that go BOOM loudly but cause no real impact. All noise, no substance."},
+  {word:"Brusque",def:"Abrupt or offhand in manner or speech; blunt.",ex:"His brusque reply — 'No. Next question.' — shocked the journalist.",trick:"'Brusque' sounds like 'brisk + rusk' — dry and sharp. A brusque person is dry and abrupt."},
+  {word:"Burgeon",def:"To begin to grow or increase rapidly; to flourish.",ex:"The tech sector continued to burgeon despite the economic slowdown.",trick:"'Bur-GEON' — a GEON is a geological phenomenon that GROWS. Burgeon = GROW and BLOOM explosively."},
+  // C
+  {word:"Cachet",def:"The state of being respected or admired; prestige.",ex:"An Oxford degree still carries considerable cachet in the job market.",trick:"'Cache' = hidden treasure. Cachet = the hidden treasure of PRESTIGE attached to something."},
+  {word:"Candor",def:"The quality of being open, honest and direct in expression.",ex:"She appreciated his candor — he told her exactly what was wrong with her plan.",trick:"'Cand' = white/shining (Latin 'candidus'). Candor = WHITE honesty, shining and transparent."},
+  {word:"Capitulate",def:"To cease resisting; to give up or surrender under conditions.",ex:"After hours of argument, he finally capitulated and agreed to their terms.",trick:"'Capit' = head (Latin 'caput'). Capitulate = bow your HEAD in surrender. Head goes down."},
+  {word:"Caricature",def:"A picture or description that exaggerates someone's features for comic effect; a ludicrous version.",ex:"The newspaper's caricature of the president exaggerated his prominent ears to absurdity.",trick:"'Caric' = to load/exaggerate (Italian 'caricare'). Caricature = LOADED with exaggeration."},
+  {word:"Censorious",def:"Severely critical of others; habitually fault-finding.",ex:"The censorious reviewer found flaws in every production, no matter how acclaimed.",trick:"'Censor' + 'ious'. Censorious = a full-time CENSOR of other people. Always disapproving."},
+  {word:"Circumspect",def:"Wary and unwilling to take risks; careful and cautious.",ex:"A circumspect investor, she never put more than 5% of her portfolio in one stock.",trick:"'Circum' (around) + 'spect' (look). Circumspect = look ALL AROUND carefully before moving. 360° caution."},
+  {word:"Coalesce",def:"To come together and form a whole; to unite.",ex:"Gradually, the scattered ideas coalesced into a coherent strategy.",trick:"'Co' (together) + 'alesce' (grow). Coalesce = GROW TOGETHER into one. Parts finding each other."},
+  {word:"Cogent",def:"Powerfully persuasive; clear, logical and compelling.",ex:"She made a cogent argument for restructuring the team — nobody could disagree.",trick:"'Cog' = a gear that fits perfectly. Cogent = fits PERFECTLY — logical gears meshing into one persuasive whole."},
+  {word:"Commensurate",def:"Corresponding in size or degree; in proportion to.",ex:"His salary was not commensurate with his level of responsibility.",trick:"'Com' (together) + 'mensur' (measure). Commensurate = MEASURED together. Equal in measure."},
+  {word:"Compendium",def:"A collection of concise information about a subject; a summary.",ex:"The book is a compendium of essential GRE vocabulary organized by theme.",trick:"'Compend' = weigh together (Latin). A compendium WEIGHS everything together into one compact package."},
+  {word:"Complaisant",def:"Willing to please; obliging; acting in a way that pleases others.",ex:"The complaisant assistant always found a way to accommodate every request.",trick:"'Complaisant' vs 'complacent' — complaisant = PLEASING others. Complacent = pleasing yourself by doing nothing."},
+  {word:"Conciliate",def:"To make peace; to reconcile; to gain goodwill by friendly acts.",ex:"The mediator worked to conciliate the two feuding business partners.",trick:"'Concili' = council. Conciliate = bring to the COUNCIL table to make peace."},
+  {word:"Condone",def:"To accept or forgive behaviour that is considered wrong; to overlook.",ex:"The school does not condone bullying in any form.",trick:"'Con' + 'done' — you CONSIDER it DONE. You let it go. Forgive and move past it."},
+  {word:"Contrite",def:"Feeling or expressing remorse or penitence; sorrowful about wrongdoing.",ex:"She was genuinely contrite and apologised to everyone she had hurt.",trick:"'Con' (thoroughly) + 'trit' (worn down, like 'attrition'). Contrite = WORN DOWN with guilt and remorse."},
+  {word:"Conundrum",def:"A confusing or difficult problem or question; a dilemma.",ex:"How to cut costs without laying off staff was a real conundrum for management.",trick:"'Con' + 'undrum' sounds like 'drum'. A conundrum beats at you like a drum, confusing and circular."},
+  {word:"Corollary",def:"A natural consequence or result; something that directly follows from something else.",ex:"Increased responsibility is a corollary of promotion — it comes with the territory.",trick:"'Coroll' = little crown (Latin). A corollary is the little CROWN that naturally sits on top of a main conclusion."},
+  {word:"Craven",def:"Contemptibly lacking in courage; cowardly.",ex:"His craven refusal to defend his colleague when it mattered most disgusted everyone.",trick:"'Craven' = one who CRAVES safety above all. So desperate to be SAFE they abandon all bravery."},
+  {word:"Culprit",def:"A person who is responsible for a crime or other misdeed.",ex:"After the investigation, the real culprit turned out to be the finance director.",trick:"'Culp' = guilt (Latin 'culpa'). Culprit = the GUILTY one. The person carrying the culpa."},
+  // D
+  {word:"Debunk",def:"To expose the falseness or hollowness of a myth, idea or belief.",ex:"The study debunked the popular myth that humans only use 10% of their brains.",trick:"'De' (remove) + 'bunk' (nonsense). Debunk = REMOVE the bunk (rubbish). Bust the myth."},
+  {word:"Deference",def:"Humble submission and respect to another's wishes, judgment or authority.",ex:"Out of deference to her elders, she waited to speak last.",trick:"'Defer' = to yield to someone else. Deference = the ACT of yielding. Respectful stepping back."},
+  {word:"Deleterious",def:"Causing harm or damage; harmful in effect.",ex:"The deleterious effects of prolonged screen time on children's eyesight are well documented.",trick:"'Delet' = to destroy (like 'delete'). Deleterious = DELETES your health or wellbeing gradually."},
+  {word:"Delineate",def:"To describe or portray something precisely; to mark the outline of.",ex:"The contract delineated each party's obligations with precision.",trick:"'De-LINE-ate' — draw a LINE. Delineate = draw the exact LINES of something. Define its boundaries."},
+  {word:"Demure",def:"Reserved, modest and shy; quietly well-behaved.",ex:"Her demure manner in public gave no hint of her fierce competitiveness.",trick:"'De-MURE' — 'mure' = wall (Latin). Demure = hiding behind a WALL of modesty and quietness."},
+  {word:"Denigrate",def:"To criticize unfairly; to disparage; to blacken someone's reputation.",ex:"He denigrated her achievements in front of the entire board.",trick:"'De-NIGR-ate' — 'nigr' = black (Latin 'niger'). Denigrate = BLACKEN someone's name. Stain their reputation."},
+  {word:"Derivative",def:"Imitative of the work of another; not original; something derived from another source.",ex:"Critics dismissed the film as derivative — it borrowed too heavily from classic noir.",trick:"'Deriv' = to flow from (like a river from a source). Derivative = flows FROM something else. Not original."},
+  {word:"Dexterous",def:"Showing or having skill, especially with the hands; mentally adroit.",ex:"The dexterous surgeon completed the intricate procedure in record time.",trick:"'Dexter' = right hand (Latin). Dexterous = skilled as the RIGHT HAND. Nimble and precise."},
+  {word:"Digress",def:"To leave the main subject temporarily; to wander from the topic.",ex:"He began talking about pricing and digressed into a twenty-minute anecdote.",trick:"'Di' (away) + 'gress' (step, like progress). Digress = step AWAY from the path. Wander off topic."},
+  {word:"Discrepancy",def:"A difference between two things that should be the same; an inconsistency.",ex:"There was a significant discrepancy between the two financial reports.",trick:"'Dis' (apart) + 'crepan' (rattle/clash). A discrepancy RATTLES because things don't match up."},
+  {word:"Disingenuous",def:"Not candid or sincere; insincere; giving a false impression of frankness.",ex:"His disingenuous apology included the words 'if anyone was offended'.",trick:"'Dis' (not) + 'ingenuous' (open/innocent). Disingenuous = PRETENDING to be innocent while being sneaky."},
+  {word:"Disinterested",def:"Not influenced by personal involvement; impartial — NOT the same as uninterested.",ex:"We need a disinterested party to mediate — someone with no stake in the outcome.",trick:"'Dis-INTERESTED' — no personal INTEREST (stake). Not biased. Note: this ≠ uninterested (bored)!"},
+  {word:"Disparate",def:"Essentially different in kind; not allowing comparison; unlike.",ex:"The committee brought together people with disparate backgrounds and viewpoints.",trick:"'Dispar' = unequal (Latin). Disparate = so different they can't even be MEASURED on the same scale."},
+  // E
+  {word:"Ebullience",def:"The quality of being cheerful and full of energy; exuberance.",ex:"The team's ebullience after the victory was infectious — even the coach was dancing.",trick:"'Ebull' = to boil/bubble. Ebullience = BUBBLING over with joy. Energy that can't be contained."},
+  {word:"Elegy",def:"A mournful poem or song written as a lament for the dead.",ex:"He wrote a moving elegy for his mentor that was read at the funeral.",trick:"'E-LEGY' — 'legy' sounds like 'legacy'. An elegy honours someone's LEGACY after death."},
+  {word:"Elliptical",def:"Omitting words; indirect and difficult to understand; having an ellipse shape.",ex:"His elliptical reply hinted at the truth without ever stating it directly.",trick:"An ELLIPSE has gaps — it's not a complete circle. Elliptical = with gaps left out. Incomplete and indirect."},
+  {word:"Eminent",def:"Respected and famous within a particular sphere; standing out above others.",ex:"She was an eminent scholar in the field of constitutional law.",trick:"'Em-INENT' — stands ABOVE ('em' = above + 'inent' = coming toward you). Eminent = towers above."},
+  {word:"Empirical",def:"Based on observation and experiment rather than theory.",ex:"The study provided empirical evidence that meditation reduces cortisol levels.",trick:"'Empir' from Greek 'empeirikos' (experienced). Empirical = based on EXPERIENCE, not theory. You saw it happen."},
+  {word:"Endemic",def:"Regularly found in or restricted to a particular region or people.",ex:"Malaria is endemic in many tropical regions.",trick:"'En' (within) + 'demic' (people/place). Endemic = within a specific PEOPLE or PLACE. Belongs there."},
+  {word:"Enervation",def:"A feeling of being drained of energy; weakness.",ex:"After three sleepless nights, a deep enervation set in that coffee couldn't fix.",trick:"'Enerv' = drain the nerves. Enervation = a state where every NERVE is drained empty."},
+  {word:"Engender",def:"To cause or give rise to something, especially a feeling or situation.",ex:"Poor communication engenders mistrust in any organisation.",trick:"'En' (cause) + 'gender' (create, like generate). Engender = GENERATE and bring something to life."},
+  {word:"Enigmatic",def:"Difficult to interpret or understand; mysterious.",ex:"The Mona Lisa's enigmatic smile has fascinated art lovers for centuries.",trick:"'Enigma' = riddle/puzzle. Enigmatic = FULL of riddle. A puzzle wrapped in a mystery."},
+  {word:"Enumerate",def:"To mention things one by one; to count; to list.",ex:"Please enumerate your qualifications before we proceed.",trick:"'Enumer' = number + 'ate'. Enumerate = put NUMBERS on things. List them one by one."},
+  {word:"Ephemeral",def:"Lasting for a very short time; fleeting.",ex:"The cherry blossom season is ephemeral — barely two weeks of peak beauty.",trick:"'Ephemer' = daily (Greek 'epi-hemera' = upon a day). Ephemeral = lasts only ONE DAY. Here and gone."},
+  {word:"Equitable",def:"Fair and impartial; treating everyone equally.",ex:"An equitable distribution of resources requires accounting for different needs.",trick:"'Equit' = equal (equity). Equitable = treating everyone with EQUAL fairness."},
+  {word:"Evanescent",def:"Quickly fading or disappearing; ephemeral.",ex:"The evanescent glow of sunset lasted barely five minutes.",trick:"'Evan' sounds like 'evaporate'. Evanescent = EVAPORATES before your eyes. Here one second, gone the next."},
+  {word:"Exacerbate",def:"To make a bad situation worse.",ex:"His dismissive tone only exacerbated her frustration.",trick:"'Exacer' = make more bitter (acerb = sharp/bitter). Exacerbate = pour MORE acid on the wound."},
+  {word:"Exculpate",def:"To show that someone is not guilty of wrongdoing; to clear.",ex:"The new evidence exculpated the defendant entirely.",trick:"'Ex' (out of) + 'culp' (guilt). Exculpate = pull someone OUT of guilt. Clear them completely."},
+  {word:"Exemplary",def:"Serving as a desirable model; representing the best of its kind.",ex:"Her exemplary work ethic was cited in her promotion letter.",trick:"'Exemplar' = a perfect example. Exemplary = SO good it IS the example. The gold standard."},
+  {word:"Exhaustive",def:"Including or considering all elements or aspects; thorough.",ex:"The exhaustive review of 400 studies took two years to complete.",trick:"'Exhaust' everything possible. Exhaustive = so thorough it EXHAUSTS every possibility."},
+  // F
+  {word:"Facile",def:"Appearing effortless; lacking depth; too simplistic.",ex:"A facile solution to poverty ignores the structural causes.",trick:"'Facile' = easy in French/Latin. Facile = TOO easy — superficially simple, dangerously shallow."},
+  {word:"Fallible",def:"Capable of making mistakes or being wrong.",ex:"No expert is infallible — everyone is fallible and subject to error.",trick:"'Falli' = to deceive/fail. Fallible = capable of FAILING. Humans fall; fallible = fall-able."},
+  {word:"Fawn",def:"To give excessive compliments to gain favour; to act servilely.",ex:"He fawned over the celebrity, laughing at every joke and praising every remark.",trick:"A baby deer (fawn) is meek and submissive. To fawn = be submissively flattering like a fawn."},
+  {word:"Felicitous",def:"Well-chosen and appropriate; pleasingly apt; bringing happiness.",ex:"Her felicitous phrasing turned a difficult message into something almost beautiful.",trick:"'Felicit' = happiness (like 'felicity'). Felicitous = brings HAPPINESS through perfect aptness."},
+  {word:"Fervid",def:"Intensely enthusiastic; impassioned.",ex:"He was a fervid admirer of her work and had read every book three times.",trick:"'Ferv' = boil (like fervor). Fervid = BOILING with intense feeling. Hotter than merely fervent."},
+  {word:"Fickle",def:"Changing frequently, especially in loyalty or affection; inconstant.",ex:"The fickle public loved the celebrity one month and turned on her the next.",trick:"'Fickle' rhymes with 'tickle'. The wind TICKLES and changes direction. Fickle = shifts like the wind."},
+  {word:"Fleeting",def:"Lasting for a very short time; swift and transient.",ex:"Their shared glance was fleeting, but both felt its significance.",trick:"'Fleet' = swift (a fleet of fast ships). Fleeting = FLEET of foot. Gone in an instant."},
+  {word:"Flustered",def:"Agitated and confused; thrown into a state of nervous confusion.",ex:"The unexpected question from the audience left the speaker visibly flustered.",trick:"'Flust' sounds like 'flushed' + 'flustered'. Your face flushes and your thoughts SCATTER."},
+  {word:"Forestall",def:"To prevent or obstruct something by taking advance action.",ex:"The manager forestalled complaints by addressing issues before they escalated.",trick:"'Fore' (before) + 'stall' (stop). Forestall = STOP something BEFORE it happens. Act early."},
+  {word:"Fortuitous",def:"Happening by chance rather than intention; lucky.",ex:"His meeting with the investor was entirely fortuitous — they were seated next to each other on a flight.",trick:"'Fortuit' from 'fortuna' (fortune). Fortuitous = FORTUNE dropping in unannounced. Lucky accident."},
+  {word:"Fractious",def:"Easily irritated; unruly; inclined to cause trouble.",ex:"The fractious child had to be removed from the classroom.",trick:"'Fract' = break (fracture). Fractious = BREAKING the peace constantly. A troublemaker."},
+  {word:"Frugal",def:"Sparing or economical with money and resources; simple and plain.",ex:"Her frugal habits — packing lunch, cycling to work — let her save half her salary.",trick:"'Frug' = frugal fruit (think of eating plain fruit, not feasts). Frugal = simple, unadorned, economical."},
+  // G–H
+  {word:"Gainsay",def:"To deny or contradict; to speak against or oppose.",ex:"Nobody could gainsay the evidence — it was overwhelming.",trick:"'Gain' + 'say' — to say something AGAINST the grain. Gainsay = say AGAINST. Deny it."},
+  {word:"Germane",def:"Relevant and appropriate to the subject under consideration.",ex:"Only germane evidence should be presented in court.",trick:"'Germane' sounds like 'German' precision. Germane = fits so PRECISELY it belongs there."},
+  {word:"Glut",def:"An excessively abundant supply of something; to supply or fill to excess.",ex:"There is a glut of qualified applicants but very few available positions.",trick:"'Glut' = to gorge (like gluttony). A glut = GORGED with too much supply. Oversaturated."},
+  {word:"Gratify",def:"To give pleasure or satisfaction; to indulge.",ex:"It gratified her enormously to see her students go on to such successful careers.",trick:"'Grat' = grace/thanks (like gratitude). Gratify = fill someone with GRATITUDE-inducing pleasure."},
+  {word:"Hackneyed",def:"Lacking originality; overused to the point of being meaningless; trite.",ex:"The screenplay was full of hackneyed dialogue straight from every rom-com cliché.",trick:"'Hackney' horses were hired out so often they were worn out. Hackneyed = ridden to DEATH. Worn out."},
+  {word:"Hamper",def:"To hinder or obstruct the movement or progress of something.",ex:"Heavy rain hampered the rescue effort significantly.",trick:"'Hamper' — like a HAMPER basket with a lid. A hamper HOLDS things back. Restrict progress."},
+  {word:"Hapless",def:"Unfortunate and unlucky; having no luck at all.",ex:"The hapless tourist managed to lose his passport, wallet and phone in the same day.",trick:"'Hap' = luck (like 'happenstance' = what happens by chance). Hapless = WITHOUT luck. Perpetually unlucky."},
+  {word:"Hauteur",def:"Proud and disdainful behaviour; arrogant superiority.",ex:"She greeted the new employees with a hauteur that put everyone immediately on edge.",trick:"'Hauteur' from 'haut' = high (French). Hauteur = holding yourself HIGH above others. Arrogant elevation."},
+  {word:"Hedonist",def:"A person who believes pleasure is the most important thing in life.",ex:"The hedonist spent his inheritance on travel, fine wine and expensive experiences.",trick:"'Hedon' = pleasure (Greek). A hedonist = someone whose entire compass points toward PLEASURE."},
+  {word:"Heretical",def:"Holding beliefs contrary to those officially accepted; unorthodox.",ex:"Suggesting the theory was wrong was heretical in that academic department.",trick:"'Heretic' = one who CHOOSES differently (Greek 'hairein' = to choose). Heretical = choosing AGAINST the accepted view."},
+  {word:"Homogeneous",def:"Of the same kind; alike; uniform throughout.",ex:"The class was homogeneous in age but diverse in background.",trick:"'Homo' = same + 'gen' (kind). Homogeneous = all the SAME KIND. Like homogenised milk — uniform."},
+  {word:"Hypocritical",def:"Behaving in a way that contradicts one's stated beliefs; insincere.",ex:"It's hypocritical to preach recycling while throwing plastic bottles away.",trick:"'Hypo' (under) + 'crit' (judge). A hypocrite judges from UNDER cover. Pretends to hold values they don't live."},
+  // I
+  {word:"Iconoclasm",def:"The act of attacking cherished beliefs or institutions; rejection of traditional values.",ex:"His iconoclasm in the art world earned him both admirers and fierce enemies.",trick:"'Icon' (sacred image) + 'clasm' (breaking). Iconoclasm = SMASHING sacred images and traditions."},
+  {word:"Imminent",def:"About to happen; impending.",ex:"With the deadline imminent, the team worked through the night.",trick:"'Immin' = to hang over (Latin). Imminent = hanging right OVER you, about to fall."},
+  {word:"Impassive",def:"Not feeling or showing emotion; calm.",ex:"The guard stood impassive throughout the protest, showing no reaction.",trick:"'Im' (not) + 'passive' — wait, reverse: im-PASS-ive. Nothing can PASS through to affect them. Stone face."},
+  {word:"Impede",def:"To delay or prevent something by obstructing it; to hinder.",ex:"Lack of funding impeded the project's progress for two full years.",trick:"'Im' + 'pede' (foot). Impede = put something under someone's FOOT. Trip them up. Block the path."},
+  {word:"Imperious",def:"Assuming power or authority without justification; domineering.",ex:"Her imperious manner alienated subordinates who resented being ordered around.",trick:"'Imperius' = emperor-like. Imperious = acting like an EMPEROR who demands obedience from all."},
+  {word:"Impervious",def:"Not allowing fluid to pass through; unable to be affected by.",ex:"He was impervious to criticism, brushing off every complaint with a shrug.",trick:"'Im' (not) + 'pervious' (penetrable). Impervious = NOTHING gets through. A sealed wall."},
+  {word:"Implicit",def:"Suggested though not directly expressed; inherent; absolute unquestioning.",ex:"There was an implicit understanding that no one discussed the failed project.",trick:"'Im-PLICIT' = folded IN. Implicit = folded INSIDE, not stated, but understood to be there."},
+  {word:"Impunity",def:"Exemption from punishment or freedom from injurious consequences.",ex:"Corrupt officials act with impunity when oversight is weak.",trick:"'Im' (not) + 'punit' (punish, like punitive). Impunity = NO punishment. Do wrong and walk free."},
+  {word:"Inadvertent",def:"Not resulting from deliberate intention; accidental.",ex:"The inadvertent release of confidential data caused a PR crisis.",trick:"'In' (not) + 'advert' (to turn attention to). Inadvertent = NOT turning attention to it. Accidental oversight."},
+  {word:"Incorrigible",def:"Not able to be corrected, improved or reformed.",ex:"He was an incorrigible optimist — nothing could shake his positive outlook.",trick:"'In' (not) + 'corrig' (correct). Incorrigible = CANNOT be corrected. Set in stone."},
+  {word:"Indignant",def:"Feeling or showing annoyance at what is perceived as unjust treatment.",ex:"She was indignant at being passed over for a promotion she clearly deserved.",trick:"'In' (not) + 'dign' (worthy). Indignant = treated as UN-WORTHY. Righteous anger at injustice."},
+  {word:"Indolence",def:"Avoidance of activity; laziness; habitual inactivity.",ex:"His indolence during the semester meant he had to cram everything into one week.",trick:"'In' (not) + 'dol' (pain, Latin). Indolence = WITHOUT pain of effort. Too comfortable to move."},
+  {word:"Infamous",def:"Well known for some bad quality or deed; notoriously evil.",ex:"Al Capone was infamous for his brutal control of Chicago's underworld.",trick:"'In' (not, negative) + 'famous'. Infamous = famous but in the WORST way. Anti-fame."},
+  {word:"Ingenuous",def:"Innocent and unsuspecting; open and honest; artlessly naive.",ex:"Her ingenuous trust in everyone made her easy prey for manipulators.",trick:"'In' + 'genuous' = naturally born (genu = birth). Ingenuous = BORN OPEN. Naturally honest and naive."},
+  {word:"Inimitable",def:"So good or unusual as to be impossible to copy; unique.",ex:"Chaplin's inimitable comedic style defined an era of filmmaking.",trick:"'Im-IMIT-able' — IM (not) + IMIT (imitate). Inimitable = CANNOT be imitated. One of a kind."},
+  {word:"Innate",def:"Inborn; natural; not acquired; part of the nature of something.",ex:"He had an innate talent for music — he could pick up any instrument within hours.",trick:"'In' (within) + 'nate' (born, like natal). Innate = BORN within you. Part of your factory settings."},
+  // J–L
+  {word:"Jocular",def:"Fond of making jokes; humorous; playful.",ex:"His jocular style made even difficult feedback easy to receive.",trick:"'Jocul' from 'jocus' (joke). Jocular = FULL of jokes. A walking comedy show."},
+  {word:"Judicious",def:"Having, showing or done with good judgement; sensible.",ex:"A judicious choice of words prevented the situation from escalating.",trick:"'Judici' = judge. Judicious = thinking like a JUDGE — weighing all sides carefully."},
+  {word:"Laconic",def:"Using very few words; brief and concise.",ex:"His laconic response — 'Approved.' — ended a month of negotiation.",trick:"The Spartans (from Laconia) were famous for short, blunt speech. Laconic = Spartan brevity."},
+  {word:"Lampoon",def:"To publicly criticize someone or something using satire or parody.",ex:"The satirical magazine lampooned the prime minister mercilessly.",trick:"'Lamp-OON' — shine a LAMP on someone's flaws and mock them. Lampoon = satirical spotlight."},
+  {word:"Languid",def:"Weak and tired; relaxed and lacking vigour; slow.",ex:"The languid pace of island life suited him perfectly after years of city stress.",trick:"'Languid' shares a root with 'languish'. Languid = pleasantly LANGUISHING. Drifting slowly."},
+  {word:"Latent",def:"Existing but not yet developed or manifest; hidden.",ex:"Her latent talent for negotiation only emerged when she became a manager.",trick:"'Latent' from 'latere' = to hide (Latin). Latent = HIDING beneath the surface. Dormant power."},
+  {word:"Laud",def:"To praise highly; to extol.",ex:"Critics lauded the novel as the finest of the decade.",trick:"'Laud' from 'laudare' = to praise. LOUD praise. To laud = to shout your admiration."},
+  {word:"Lethargic",def:"Affected by lethargy; sluggish and apathetic.",ex:"After the heavy meal, everyone felt lethargic and unable to concentrate.",trick:"'Lethe' = river of forgetfulness in Greek mythology. Lethargic = like you drank from LETHE. Slow and forgetful."},
+  {word:"Levity",def:"The treatment of a serious matter with humour or lack of respect.",ex:"His levity at the funeral was poorly received by the grieving family.",trick:"'Lev' = light (like levitate). Levity = making a LIGHT of something heavy. Floats above seriousness."},
+  {word:"Loquacity",def:"The quality of talking a great deal; talkativeness.",ex:"His loquacity meant that one-hour meetings regularly stretched to three.",trick:"'Loqu' = speak (Latin). Loquacity = a LARGE supply of speech. Speaking machine at full speed."},
+  // M
+  {word:"Magnanimous",def:"Very generous or forgiving towards a rival or less powerful person.",ex:"In victory, she was magnanimous — publicly praising her defeated opponent.",trick:"'Magna' (great) + 'animus' (spirit/soul). Magnanimous = GREAT SOUL. Generous beyond what's required."},
+  {word:"Malign",def:"To speak about someone in a spitefully critical way; harmful in effect.",ex:"He was maligned by rivals who resented his rapid success.",trick:"'Mal' = bad (malice, malevolent). Malign = say BAD things about someone. Attack with words."},
+  {word:"Malodorous",def:"Having an unpleasant smell; stinking.",ex:"The malodorous fish market cleared the street within minutes.",trick:"'Mal' (bad) + 'odor' (smell). Malodorous = BAD SMELL. Straightforward once you know the roots."},
+  {word:"Manifest",def:"Clear and obvious; to show or demonstrate clearly.",ex:"Her anxiety manifested as an inability to sleep before exams.",trick:"'Mani' (hand) + 'fest' (grasped). Manifest = something you can GRASP with your hand. Tangible and visible."},
+  {word:"Maverick",def:"An independent-minded person who does not follow conventional norms.",ex:"The maverick CEO scrapped the five-year plan on day one and started from scratch.",trick:"Samuel Maverick refused to brand his cattle. A maverick = someone who refuses the brand of conformity."},
+  {word:"Mendacity",def:"The tendency to be dishonest; untruthfulness.",ex:"The politician's mendacity became evident when three separate claims were disproved.",trick:"'Mendac' = lie (Latin). Mendacity = a HABIT of lying. Professional untruthfulness."},
+  {word:"Meritorious",def:"Deserving reward or praise; commendable.",ex:"Her meritorious service to the community was recognised with an honorary degree.",trick:"'Merit' is inside. Meritorious = FULL of merit. Deserves the medal."},
+  {word:"Metaphorical",def:"Using metaphor; not literal; figurative.",ex:"'Drowning in work' is metaphorical — she had too many tasks, not too much water.",trick:"'Meta' (beyond) + 'phor' (carry). Metaphorical = CARRIES meaning BEYOND the literal words."},
+  {word:"Misanthrope",def:"A person who dislikes humankind and avoids human society.",ex:"The misanthrope lived alone on a mountain, turning away every visitor.",trick:"'Mis' (hate) + 'anthrop' (human, like anthropology). Misanthrope = hates HUMANS. The anti-social extreme."},
+  {word:"Misnomer",def:"A wrong or inaccurate name or designation; a misleading term.",ex:"Calling a koala a 'bear' is a misnomer — it's a marsupial.",trick:"'Mis' (wrong) + 'nomer' (name, like 'nominal'). Misnomer = the WRONG NAME. Labelling error."},
+  {word:"Mitigate",def:"To make less severe, serious or painful.",ex:"Regular exercise can mitigate the effects of stress.",trick:"'Miti' = mild + 'gate'. Open the gate to let severity OUT. Mitigate = reduce the force."},
+  {word:"Morose",def:"Sullen and ill-tempered; gloomy.",ex:"He became morose after the rejection, barely speaking for days.",trick:"'Morose' sounds like 'more-dose of gloom'. Morose = a heavy dose of sullenness. Dark and sulking."},
+  {word:"Mundane",def:"Lacking interest or excitement; dull; of this earthly world.",ex:"Most creative breakthroughs come from doing the mundane work consistently.",trick:"'Monde' = world (French). Mundane = just the ordinary WORLD. Nothing spiritual or exciting about it."},
+  // N–O
+  {word:"Nebulous",def:"In the form of a cloud or haze; vague and ill-defined.",ex:"His plans were nebulous at best — lots of grand talk, no clear steps.",trick:"'Nebul' = cloud (Latin, as in 'nebula'). Nebulous = CLOUDY and vague. Can't see the shape."},
+  {word:"Negate",def:"To nullify; to make ineffective; to deny the existence of.",ex:"One bad review can negate months of positive press.",trick:"'Negate' = say NO (Latin 'negare'). To negate = wipe out with a NO. Cancel entirely."},
+  {word:"Neologism",def:"A newly coined word or expression; a new use of an existing word.",ex:"'Selfie' is a relatively recent neologism that's now in the dictionary.",trick:"'Neo' (new) + 'log' (word) + 'ism'. Neologism = a brand-NEW WORD just minted for modern use."},
+  {word:"Nihilism",def:"The rejection of all religious and moral principles; belief that life is meaningless.",ex:"His nihilism prevented him from committing to any cause, relationship or goal.",trick:"'Nihil' = nothing (Latin). Nihilism = belief in NOTHING. Life has no meaning, no purpose."},
+  {word:"Noxious",def:"Harmful, poisonous or very unpleasant.",ex:"The factory released noxious fumes that made nearby residents ill.",trick:"'Nox' = harm/night (Latin, like 'noxious' and 'obnoxious'). Noxious = HARMFUL like a toxic night fog."},
+  {word:"Obdurate",def:"Stubbornly refusing to change one's opinion or course of action; hardened.",ex:"Despite the evidence, he remained obdurate, insisting he had done nothing wrong.",trick:"'Ob' + 'dure' (hard, like 'durable'). Obdurate = HARDENED against change. Stone-hearted refusal."},
+  {word:"Obfuscate",def:"To make unclear or confusing; to obscure.",ex:"The company's annual report seemed designed to obfuscate rather than inform.",trick:"'Ob' (over) + 'fusc' (dark, like 'infuscate'). Obfuscate = DARKEN something on purpose. Muddy it."},
+  {word:"Oblique",def:"Neither parallel nor at right angles; not direct; indirect and evasive.",ex:"He made an oblique reference to the incident without ever naming names.",trick:"An oblique line goes SIDEWAYS, not straight. Oblique = coming at you from the SIDE. Indirect."},
+  {word:"Oblivious",def:"Not aware of or concerned about what is happening around one.",ex:"She was completely oblivious to the chaos unfolding behind her.",trick:"'Obliv' = forget (Latin 'oblivio'). Oblivious = in a state of total FORGETTING about surroundings."},
+  {word:"Obtuse",def:"Annoyingly insensitive or slow to understand.",ex:"He was being deliberately obtuse, refusing to acknowledge the obvious.",trick:"An obtuse angle is BLUNT (over 90°). Obtuse person = BLUNT-minded. Not sharp at all."},
+  {word:"Officious",def:"Asserting authority or interfering in an overbearing way; bossy without authority.",ex:"The officious ticket inspector checked every passenger's ID twice.",trick:"'Offici' sounds like 'official' but without the actual authority. Officious = FAKE official. Bossy impostor."},
+  {word:"Ominous",def:"Giving the impression that something bad or unpleasant is about to happen.",ex:"The ominous tone of the message suggested bad news was coming.",trick:"'OMEN' is right inside! Ominous = FULL of bad omens. A harbinger of doom."},
+  // P
+  {word:"Palliative",def:"Relieving pain without dealing with the cause; making something seem less serious.",ex:"The government's palliative measures addressed symptoms without tackling root causes.",trick:"'Palli' = cloak (Latin 'pallium'). Palliative = CLOAKS the pain. Covers it up without curing it."},
+  {word:"Panegyric",def:"A public speech or text in praise of someone or something.",ex:"The biography reads more like a panegyric than a balanced account.",trick:"'Pan' (all) + 'gyric' (circle). A panegyric circles ALL the way around with praise. Comprehensive tribute."},
+  {word:"Paradox",def:"A statement or situation that seems contradictory but may contain a truth.",ex:"The paradox of choice: the more options we have, the less satisfied we feel.",trick:"'Para' (against) + 'dox' (opinion). A paradox = AGAINST what you'd expect to be true. Defies logic yet holds truth."},
+  {word:"Pariah",def:"An outcast; a person rejected by society or a social group.",ex:"After the scandal, he became a pariah — no one in the industry would work with him.",trick:"Pariah = originally an outcaste drum-beater in India. A PARIAH is beaten away from society."},
+  {word:"Parody",def:"An imitation that exaggerates for comic effect; to mock by imitation.",ex:"The sketch was a brilliant parody of political debate — sharp and hilarious.",trick:"'Par' (beside) + 'ody' (song). A parody = a song ALONGSIDE the original, mocking it."},
+  {word:"Partisan",def:"A strong supporter of a party or cause, often in a biased way.",ex:"His analysis was too partisan to be trusted as objective commentary.",trick:"'Part' = a PARTY or PART. Partisan = strongly on ONE PART, one side. Biased loyalty."},
+  {word:"Pathos",def:"A quality that evokes pity, sadness or sympathy.",ex:"The documentary was filled with pathos — each survivor's story more heartbreaking than the last.",trick:"'Pathos' = feeling/suffering (Greek). Pathos = appeals to your FEELINGS. Emotional pull toward sadness."},
+  {word:"Pellucid",def:"Translucently clear; easily understood; lucid.",ex:"Her pellucid explanation of quantum mechanics made it accessible to everyone.",trick:"'Pellucid' = pel (through) + lucid (light). Pellucid = light shines ALL THE WAY THROUGH. Crystal clarity."},
+  {word:"Penchant",def:"A strong or habitual liking for something; a tendency.",ex:"He had a penchant for making promises he couldn't keep.",trick:"'Pench' from French 'pencher' (to lean). Penchant = leaning TOWARD something consistently."},
+  {word:"Penultimate",def:"Second to last.",ex:"The penultimate chapter was the most suspenseful of the entire novel.",trick:"'Pen' (almost) + 'ultimate' (last). Penultimate = ALMOST the last. Second from the end."},
+  {word:"Perennial",def:"Lasting for a long or apparently infinite time; enduring; recurring.",ex:"Traffic is a perennial problem in this city — it never really improves.",trick:"'Per' (through) + 'ennial' (year, like annual). Perennial = THROUGH all years. Coming back every year, always present."},
+  {word:"Pertinacious",def:"Holding firmly to an opinion or course of action; stubbornly persistent.",ex:"Her pertinacious pursuit of the truth kept her investigating for three years.",trick:"'Pertin' = hold firmly + 'acious' (full of). Pertinacious = FULL of tenacious holding on. Won't release."},
+  {word:"Petulant",def:"Childishly sulky or bad-tempered over a minor issue.",ex:"He made petulant remarks about the seating arrangement at dinner.",trick:"'Petul' sounds like 'petal on a little pet'. Petulant = LITTLE PET throwing a tantrum. Minor sulky outburst."},
+  {word:"Plausible",def:"Seeming reasonable or probable; apparently valid or acceptable.",ex:"His excuse sounded plausible, but something about it felt off.",trick:"'Plaus' = clapping (Latin 'plaudere'). Plausible = gets the audience's APPLAUSE. Seems convincing."},
+  {word:"Polarize",def:"To divide into two sharply contrasting groups or sets of opinions.",ex:"The policy polarized voters — people either loved it or hated it intensely.",trick:"A POLE has two ends — North and South. Polarize = push people to OPPOSITE POLES."},
+  {word:"Precocious",def:"Having developed certain abilities or inclinations at an earlier age than usual.",ex:"The precocious five-year-old was already reading chapter books.",trick:"'Pre' (before) + 'coc' (ripen, like 'apricot'). Precocious = RIPENED too early. A premature flowering."},
+  {word:"Precursor",def:"Something that comes before another and may indicate its arrival.",ex:"Dark clouds are a precursor to rain.",trick:"'Pre' (before) + 'cursor' (runner). Precursor = the RUNNER who goes AHEAD to announce what's coming."},
+  {word:"Predilection",def:"A preference or special liking for something; a bias in favour of something.",ex:"She had a predilection for bold colours in her home décor.",trick:"'Pre' + 'dilect' (choose/love). Predilection = a pre-chosen LOVE. A preference already locked in."},
+  {word:"Presuppose",def:"To require as a precondition; to assume beforehand.",ex:"The argument presupposes that all voters are equally well-informed.",trick:"'Pre' (before) + 'suppose'. Presuppose = SUPPOSE before you even start. An assumption built into the foundation."},
+  {word:"Probity",def:"The quality of having strong moral principles; complete honesty and integrity.",ex:"His financial probity was unquestioned — not once in 30 years had he been suspected of dishonesty.",trick:"'Prob' = test/prove (Latin). Probity = being PROVEN honest. Integrity tested and confirmed."},
+  {word:"Procrastinate",def:"To delay or postpone action; to put off doing something.",ex:"She procrastinated for weeks until the deadline forced her to start.",trick:"'Pro' (forward) + 'crastin' (tomorrow in Latin). Procrastinate = push it to TOMORROW. Keep pushing it forward."},
+  {word:"Proclivity",def:"A tendency to choose or do something; an inclination.",ex:"His proclivity for risk-taking made him successful in venture capital.",trick:"'Pro' (toward) + 'cliv' (slope). Proclivity = a SLOPE toward something. You naturally slide toward it."},
+  {word:"Profligate",def:"Recklessly extravagant; licentious and dissolute.",ex:"His profligate spending on unnecessary luxuries drained his savings completely.",trick:"'Pro' + 'fligate' (to beat/drive away). Profligate = someone who DRIVES AWAY their resources recklessly."},
+  {word:"Propitious",def:"Giving or indicating a good chance of success; favourable.",ex:"The clear skies and calm sea were propitious conditions for the voyage.",trick:"'Propit' = favour (Latin 'propitius'). Propitious = FAVOURED by the gods. Auspicious timing."},
+  {word:"Prosaic",def:"Having the style of prose; commonplace; unromantic; dull.",ex:"After years of adventure, he found his prosaic desk job hard to bear.",trick:"'Prose' is the root. Prosaic = PROSE-like. Flat, plain, no poetry or excitement."},
+  {word:"Protagonist",def:"The main character in a story; the leading actor in a situation.",ex:"The protagonist's transformation from coward to hero drives the entire novel.",trick:"'Proto' (first) + 'agon' (contest). Protagonist = the FIRST FIGHTER. The lead person in the story."},
+  {word:"Prudent",def:"Acting with or showing care and thought for the future; sensible.",ex:"It was prudent to have savings before quitting the stable job.",trick:"'Prude' = one who is careful about conduct. Prudent = carefulness applied to ALL of life's decisions."},
+  // R
+  {word:"Recalcitrant",def:"Having an obstinately uncooperative attitude; resistant to authority.",ex:"The recalcitrant student refused to follow any classroom rule.",trick:"'Re' + 'calcitrant' (kick, from Latin 'calcitrare' = to kick). Recalcitrant = KICKS BACK against authority."},
+  {word:"Recant",def:"To say that one no longer holds a previously stated opinion; to take back.",ex:"Under pressure, he recanted his earlier statement entirely.",trick:"'Re' (back) + 'cant' (sing/chant). Recant = TAKE BACK what you chanted before. Unsay it."},
+  {word:"Redoubtable",def:"Formidable; causing fear or respect through impressive qualities.",ex:"She was a redoubtable opponent in any debate — prepared, fierce and precise.",trick:"'Re' + 'doubt'. So powerful that DOUBT comes BACK to you when facing them. Inspiring awe."},
+  {word:"Repudiate",def:"To refuse to accept or be associated with; to deny the truth of.",ex:"She repudiated the accusations in a forceful public statement.",trick:"'Re' + 'pudi' (shame, Latin). Repudiate = shame something AWAY. Throw it back in disgust."},
+  {word:"Restive",def:"Unable to keep still or silent; restless; difficult to control.",ex:"The restive crowd grew louder as the delay extended past two hours.",trick:"'Rest' + 'ive' — but means the OPPOSITE of resting! Restive = too tense to rest. Fidgety and unruly."},
+  {word:"Reticent",def:"Not revealing one's thoughts or feelings readily; reserved.",ex:"He was reticent about his past, deflecting personal questions with a smile.",trick:"'Retic' = to be silent (Latin 'reticere'). Reticent = choosing to stay SILENT. Holding back words."},
+  {word:"Rhetoric",def:"Language designed to have a persuasive effect; sometimes seen as insincere.",ex:"His speech was full of inspiring rhetoric but light on concrete policy.",trick:"'Rhetor' = orator (Greek). Rhetoric = the ART of the orator. Powerful language with a purpose."},
+  {word:"Rigorous",def:"Extremely thorough and careful; allowing no exceptions.",ex:"The rigorous testing process took six months but ensured the product was flawless.",trick:"'Rigor' = stiffness (like rigor mortis). Rigorous = STIFF with discipline. No shortcuts allowed."},
+  // S
+  {word:"Sagacious",def:"Having good judgement; wise and perceptive.",ex:"The sagacious investor had pulled out of that sector six months before the crash.",trick:"'Saga' = wise tale + 'acious' (full of). Sagacious = FULL of wisdom. A walking sage."},
+  {word:"Salient",def:"Most noticeable or important; prominent.",ex:"The salient point of her argument was that cost, not quality, drove the decision.",trick:"'Sali' = leap (Latin 'salire'). Salient = LEAPS out at you. The thing that jumps up and demands attention."},
+  {word:"Sanction",def:"Official permission for an action; a penalty; to give official permission or approval.",ex:"The board sanctioned the merger after months of review.",trick:"'Sanction' can mean BOTH permit AND punish — context is key. It's officially endorsed or officially penalised."},
+  {word:"Sardonic",def:"Grimly mocking or cynical.",ex:"His sardonic wit made him entertaining but also alienating.",trick:"'Sardonic' from 'sardoniom' (a Sardinian plant that caused death with a grin). Sardonic = grinning grimly at suffering."},
+  {word:"Scrupulous",def:"Diligent, thorough and very careful about acting correctly; having scruples.",ex:"She was scrupulous about documenting every penny of the project expenses.",trick:"'Scruple' = a tiny unit of doubt. Scrupulous = checks EVERY tiny scruple. Thorough to the last detail."},
+  {word:"Serene",def:"Calm, peaceful and untroubled; tranquil.",ex:"Despite the chaos around her, she remained serene and focused.",trick:"'Serene' sounds like 'serene-ity' (serenity). Serene = a still lake. Not a ripple. Perfect calm."},
+  {word:"Sinister",def:"Giving the impression that something harmful or evil is lurking; threatening.",ex:"There was something sinister about the way he smiled when told of her misfortune.",trick:"'Sinister' = left side (Latin). Historically the left was considered unlucky and evil. Sinister = the dark side."},
+  {word:"Solicitous",def:"Characterised by anxious concern and attentiveness for someone's well-being.",ex:"The nurse was solicitous, checking on the patient every twenty minutes.",trick:"'Solicit' = to ask/seek. Solicitous = constantly SEEKING to help and please. Anxiously attentive."},
+  {word:"Soporific",def:"Tending to induce drowsiness or sleep; tediously dull.",ex:"His monotone lecture had a soporific effect — half the room was asleep by hour two.",trick:"'Sopor' = deep sleep (Latin). Soporific = sleep-inducing. The verbal equivalent of a lullaby."},
+  {word:"Spurious",def:"Not being what it purports to be; false; not genuine.",ex:"The report was based on spurious data that had been fabricated.",trick:"'Spur' = to fake or counterfeit (Latin 'spurius'). Spurious = COUNTERFEIT. A fake dressed as a real."},
+  {word:"Steadfast",def:"Resolutely firm and unwavering in purpose; loyal.",ex:"She remained steadfast in her convictions despite enormous social pressure.",trick:"'Stead' (place) + 'fast' (fixed). Steadfast = FIXED IN PLACE. A tree with roots too deep to move."},
+  {word:"Stoic",def:"Enduring pain or hardship without showing feelings or complaining.",ex:"He suffered through the injury stoically, never asking for sympathy.",trick:"'Stoic' from the Stoic philosophers who believed in enduring suffering calmly. Stoic = ancient superhero of pain endurance."},
+  {word:"Strident",def:"Loud and harsh; making or having a shrill, irritating sound; overly assertive.",ex:"Her strident criticisms alienated potential allies.",trick:"'Strid' = stride loudly. Strident = making your presence felt by LOUDLY striding in. Harsh and pushy."},
+  {word:"Subvert",def:"To undermine the power and authority of an established system; to corrupt.",ex:"The whistleblower sought to subvert the culture of secrecy in the organisation.",trick:"'Sub' (under) + 'vert' (turn). Subvert = TURN things UPSIDE DOWN from underneath. Undermine."},
+  {word:"Succinct",def:"Briefly and clearly expressed; concise.",ex:"His succinct summary covered everything important in three sentences.",trick:"'Succ' + 'inct' (cinched/belted, Latin 'succinctus' = tucked up tight). Succinct = BELTED tight. No loose words."},
+  {word:"Supercilious",def:"Behaving as if one is superior to others; condescending.",ex:"Her supercilious attitude made new employees feel immediately unwelcome.",trick:"'Super-CILI-ous' — 'cilia' = eyelid/brow. Supercilious = raising the EYEBROW to look down at others. Snobbishly superior."},
+  {word:"Suppress",def:"To forcibly put an end to; to prevent from being known; to restrain.",ex:"He suppressed his anger and responded calmly.",trick:"'Sub' (under) + 'press'. Suppress = PRESS UNDER. Push something DOWN so it can't surface."},
+  {word:"Surreptitious",def:"Kept secret, especially because it would not be approved of; stealthy.",ex:"She cast surreptitious glances at his screen, trying to read his messages.",trick:"'Surrepti' from 'surripere' = to snatch away secretly. Surreptitious = secretly SNATCHING without being seen."},
+  // T
+  {word:"Tenable",def:"Able to be maintained or defended against attack or objection.",ex:"His position was no longer tenable after the evidence emerged.",trick:"'Ten-ABLE' = able to be HELD (Latin 'tenere' = to hold). Tenable = CAN BE HELD under pressure."},
+  {word:"Temerity",def:"Excessive confidence or boldness; audacity, often in a negative sense.",ex:"She had the temerity to demand a raise the same week she missed the deadline.",trick:"'Temer' = rash (Latin). Temerity = RASH boldness. Boldness that goes too far and becomes impudence."},
+  {word:"Tendentious",def:"Promoting a particular cause or point of view; biased.",ex:"The documentary was dismissed as tendentious by those who disagreed with its conclusions.",trick:"'Tend' = lean toward. Tendentious = LEANING heavily toward one side. Deliberately one-sided."},
+  {word:"Tenuous",def:"Very weak or slight; having little substance or validity.",ex:"The connection between the two events was tenuous at best.",trick:"'Tenu' = thin (Latin 'tenuis'). Tenuous = paper-thin. So thin it might tear at any moment."},
+  {word:"Timorous",def:"Showing or suffering from nervousness, fear or lack of confidence.",ex:"Her timorous voice betrayed the terror she felt facing the board.",trick:"'Timor' = fear (Latin). Timorous = FULL of fear. Trembling with timidity."},
+  {word:"Toady",def:"A person who behaves obsequiously to gain advantage; to be a toady.",ex:"He surrounded himself with toadies who praised everything he did.",trick:"Toad-y — a TOAD squats low and follows its 'master'. A toady = human toad who squats and flatters."},
+  {word:"Transitory",def:"Not permanent; lasting only for a short time.",ex:"The pain of change is transitory — it passes, and something new emerges.",trick:"'Trans' = across/through + 'itory' (going). Transitory = just passing THROUGH. A tourist, not a resident."},
+  {word:"Treacherous",def:"Guilty of or involving betrayal; hazardous because of presenting hidden dangers.",ex:"The treacherous road conditions caused several accidents overnight.",trick:"'Treacher' = traitor (Old French). Treacherous = full of BETRAYAL. The smiling knife."},
+  {word:"Trite",def:"Overused and lacking originality; not interesting or fresh.",ex:"'Follow your dreams' is an inspiring idea worn trite through overuse.",trick:"'Trite' from Latin 'tritus' = rubbed/worn. Trite = WORN SMOOTH from being used too many times."},
+  // U–V
+  {word:"Ubiquity",def:"The fact of appearing everywhere or being very widespread.",ex:"The ubiquity of mobile phones has changed how every industry operates.",trick:"'Ubi' = where (Latin). Ubiquity = the quality of being WHEREVER you look. Everywhere at once."},
+  {word:"Undermine",def:"To erode the base or foundation of; to weaken or damage gradually.",ex:"His constant negative comments undermined her confidence over time.",trick:"'Under' + 'mine'. Like a miner digging UNDER a structure to make it collapse. Gradual destruction from below."},
+  {word:"Untoward",def:"Unexpected and inappropriate or inconvenient; unseemly.",ex:"Nothing untoward happened at the party, despite earlier concerns.",trick:"'Un' + 'toward' (suitable/moving in right direction). Untoward = moving in the WRONG direction. Out of place."},
+  {word:"Usurp",def:"To take a position of power illegally or by force; to seize.",ex:"He usurped the chairmanship by manipulating the board behind the scenes.",trick:"'U-SURP' — like slurping power UP through a straw. Usurp = suck up power that isn't yours."},
+  {word:"Utilitarian",def:"Designed for practical use rather than beauty; concerned with practical benefit.",ex:"The office had a purely utilitarian design — functional but utterly devoid of character.",trick:"'Util' = use (utility). Utilitarian = designed for USE only. Function over everything. Pure practicality."},
+  {word:"Vacuous",def:"Having or showing a lack of thought or intelligence; empty.",ex:"His vacuous smile and empty platitudes impressed nobody in the room.",trick:"'Vacu' = empty (Latin, like vacuum). Vacuous = a VACUUM of intelligence. Hollow and empty inside."},
+  {word:"Vehement",def:"Showing strong feeling; forceful and passionate.",ex:"She was vehement in her opposition to the new policy.",trick:"'Vehe' from Latin 'vehere' = to carry with force. Vehement = carried with FORCEFUL, unstoppable intensity."},
+  {word:"Venial",def:"A sin or offense that is forgivable or minor.",ex:"Forgetting a meeting once is a venial fault — repeatedly missing them is not.",trick:"'Veni' = pardon (Latin 'venia'). Venial = PARDONABLE. Worth forgiving. (Contrast: venal = corrupt.)"},
+  {word:"Vilify",def:"To speak or write about in an abusively disparaging manner.",ex:"The tabloids vilified her for years before she successfully sued them.",trick:"'Vili' = vile + 'fy' (make). Vilify = make someone seem VILE. Drag them through the mud publicly."},
+  {word:"Vindictive",def:"Having or showing a strong or unreasoning desire for revenge.",ex:"His vindictive campaign against his former employer lasted years.",trick:"'Vindi' = avenge (Latin). Vindictive = full of the urge to AVENGE. Revenge as a personality trait."},
+  {word:"Visceral",def:"Relating to deep inward feelings rather than intellect; raw and emotional.",ex:"The film had a visceral impact — you felt every blow physically.",trick:"'Viscera' = guts (innards). Visceral = felt in your GUTS, not your head. Deep, raw, physical response."},
+  {word:"Vitriolic",def:"Filled with bitter criticism or malice; scathingly harsh.",ex:"His vitriolic attack on her reputation shocked even his allies.",trick:"'Vitri' = vitriol (sulfuric acid). Vitriolic = like pouring ACID. Words that burn and destroy."},
+  {word:"Vociferous",def:"Expressing views in a forceful and aggressive manner; clamorous.",ex:"The vociferous protesters outside made it impossible to hold the press conference.",trick:"'Voci' = voice (like vocal). Vociferous = your VOICE turned into a weapon. Loud beyond courtesy."},
+  {word:"Voluble",def:"Speaking or spoken incessantly and fluently; talkative.",ex:"Her voluble commentary filled every silence in the car for five hours.",trick:"'Volub' = rolling (Latin). Voluble = words that ROLL out endlessly without stopping."},
+  // W–Z
+  {word:"Whimsical",def:"Playfully quaint or fanciful, especially in an appealing way.",ex:"The architect's whimsical design — a house shaped like a snail — delighted everyone.",trick:"'Whim' = a sudden playful idea. Whimsical = FULL of whims. Light-hearted and unpredictably charming."},
+  {word:"Wily",def:"Skilled at gaining an advantage, especially deceitfully; crafty.",ex:"The wily negotiator secured terms that seemed impossible before the meeting.",trick:"'Wily' = full of wiles (tricks). Like a wily fox — clever, crafty, always ten moves ahead."},
+  {word:"Wistful",def:"Having or showing a feeling of vague or regretful longing.",ex:"She looked at the old photos with a wistful smile, remembering easier times.",trick:"'Wist' = thought/longing (archaic). Wistful = full of quiet LONGING. A sigh wrapped in a smile."},
+  {word:"Zenith",def:"The time at which something is most powerful or successful; the highest point.",ex:"Her career reached its zenith when she was appointed Chief Justice.",trick:"'Zenith' is astronomy's highest point in the sky. Zenith = THE TOP. Peak of the arc."},
+  {word:"Zeal",def:"Great energy or enthusiasm in pursuit of a cause or objective.",ex:"He threw himself into the project with a zeal that inspired the whole team.",trick:"'Zeal' is the root of zealous. One syllable, maximum fire. Zeal = burning PURPOSE."},
+];
+DEFS.push(...GRE_EXTRA);
+
+// INIT
+build();uCounts();rCard();
+</script>
+</body>
+</html>
