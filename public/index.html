@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vocab Vault</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#0f0e0c;--surface:#1a1916;--card:#211f1b;--border:#2e2c27;--border2:#3d3a33;--text:#e8e2d4;--muted:#7a7468;--accent:#e8a838;--accent2:#c4773a;--green:#4caf7d;--yellow:#e8c84a;--red:#e05a4a;--known:#1a2e20;--known-b:#2d5c38;--somewhat:#2a2510;--somewhat-b:#6b5c1a;--unknown:#2a1210;--unknown-b:#6b2a1a}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -165,13 +166,24 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 </style>
 </head>
 <body>
-  <div id="auth-panel" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;">
-  <div style="background:var(--card);border:1px solid var(--border2);padding:30px;max-width:400px;width:90%;">
-    <h2 style="color:var(--accent);margin-bottom:20px;font-family:'Lora',serif;">Login / Register</h2>
-    <input id="auth-email" type="email" placeholder="Email" style="width:100%;padding:10px;margin-bottom:10px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:inherit;">
-    <input id="auth-password" type="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:10px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:inherit;">
-    <button onclick="loginUser()" style="width:100%;padding:10px;background:var(--accent);color:var(--bg);border:none;cursor:pointer;margin-bottom:5px;">Login</button>
-    <button onclick="registerUser()" style="width:100%;padding:10px;background:var(--border2);color:var(--text);border:none;cursor:pointer;">Register</button>
+  <div id="auth-panel" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;">
+  <div style="background:var(--card);border:1px solid var(--border2);padding:40px;max-width:400px;width:100%;">
+    <h2 style="color:var(--accent);margin-bottom:10px;font-family:'Lora',serif;text-align:center;font-size:1.8rem;">Vocab Vault</h2>
+    <p style="color:var(--muted);margin-bottom:30px;text-align:center;font-size:0.85rem;">Welcome to your vocabulary practice</p>
+    
+    <input id="auth-email" type="email" placeholder="Email" style="width:100%;padding:12px;margin-bottom:12px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:inherit;border-radius:4px;">
+    <input id="auth-password" type="password" placeholder="Password" style="width:100%;padding:12px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:inherit;border-radius:4px;">
+    
+    <button onclick="loginUser()" style="width:100%;padding:12px;background:var(--accent);color:var(--bg);border:none;cursor:pointer;margin-bottom:10px;border-radius:4px;font-weight:bold;font-size:1rem;">Login</button>
+    <button onclick="registerUser()" style="width:100%;padding:12px;background:var(--green);color:var(--bg);border:none;cursor:pointer;margin-bottom:15px;border-radius:4px;font-weight:bold;font-size:1rem;">Register</button>
+    
+    <div style="text-align:center;color:var(--muted);margin-bottom:15px;font-size:0.9rem;">OR</div>
+    
+    <button onclick="signInWithGoogle()" style="width:100%;padding:12px;background:#4285F4;color:white;border:none;cursor:pointer;border-radius:4px;font-weight:bold;margin-bottom:15px;font-size:1rem;">🔵 Sign in with Google</button>
+    
+    <div style="text-align:center;">
+      <p style="color:var(--muted);font-size:0.75rem;margin:0;">Version 1.0 • Powered by Supabase</p>
+    </div>
   </div>
 </div>
 <div class="app">
@@ -337,6 +349,12 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 </div>
 
 <script>
+// Initialize Supabase
+const SUPABASE_URL = 'https://emsmajorqfxifuefuwwq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtc21ham9ycWZ4aWZ1ZWZ1d3dxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1OTY1MDAsImV4cCI6MjA5MzE3MjUwMH0.2oZFP5LGiCtQu32JaMhYdggK1rx2NpR_X6E2xXWib3k';
+const { createClient } = window.supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const DEFS=[
   {word:"Immaterial",def:"Not important or relevant; doesn't matter.",ex:"The time of arrival is immaterial — what matters is that you come prepared.",trick:"'Im' (not) + 'material' (matter). Something immaterial simply doesn't MATTER."},
   {word:"Moderate",def:"Middle ground; neither too much nor too little; to keep in control.",ex:"She ate a moderate portion of dessert — just enough to satisfy, not overdo.",trick:"'Moderate' has 'mode' in it — mode is the middle value in statistics. Middle = moderate."},
@@ -1370,30 +1388,33 @@ const GRE_EXTRA=[
 ];
 DEFS.push(...GRE_EXTRA);
 
-// INIT
-build();uCounts();rCard();
+// Check if already logged in - Initialize UI
+window.addEventListener('load',async ()=>{
+  authToken=localStorage.getItem('auth_token');
+  if(authToken){
+    document.getElementById('auth-panel').style.display='none';
+    await loadWordsFromAPI();
+    build();uCounts();rCard();
+    setTab('flash');
+  }else{
+    document.getElementById('auth-panel').style.display='flex';
+  }
+});
+
 async function loginUser(){
   const email=document.getElementById('auth-email').value;
   const password=document.getElementById('auth-password').value;
   if(!email||!password){alert('Enter email and password');return;}
   try{
-    const res=await fetch('/api/login',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email,password})
-    });
-    if(res.ok){
-      const data=await res.json();
-      authToken=data.session.access_token;
-      localStorage.setItem('auth_token',authToken);
-      document.getElementById('auth-panel').style.display='none';
-      await loadWordsFromAPI();
-      setTab('flash');
-    }else{
-      const err=await res.json();
-      alert('Login failed: '+err.error);
-    }
-  }catch(e){alert('Error: '+e.message);}
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    authToken=data.session.access_token;
+    localStorage.setItem('auth_token',authToken);
+    document.getElementById('auth-panel').style.display='none';
+    await loadWordsFromAPI();
+    build();uCounts();rCard();
+    setTab('flash');
+  }catch(e){alert('Login failed: '+(e.message||e));}
 }
 
 async function registerUser(){
@@ -1401,29 +1422,40 @@ async function registerUser(){
   const password=document.getElementById('auth-password').value;
   if(!email||!password){alert('Enter email and password');return;}
   try{
-    const res=await fetch('/api/register',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email,password})
-    });
-    if(res.ok){
-      alert('Account created! Now log in.');
-    }else{
-      const err=await res.json();
-      alert('Registration failed: '+err.error);
-    }
-  }catch(e){alert('Error: '+e.message);}
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+    if(error) throw error;
+    alert('Account created! Check your email and then log in.');
+    document.getElementById('auth-email').value='';
+    document.getElementById('auth-password').value='';
+  }catch(e){alert('Registration failed: '+(e.message||e));}
 }
 
-// Check if already logged in
-window.addEventListener('load',async ()=>{
-  authToken=localStorage.getItem('auth_token');
-  if(authToken){
+async function signInWithGoogle(){
+  try{
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+    if(error) throw error;
+  }catch(e){
+    alert('Google Sign-In Error: '+(e.message||e));
+  }
+}
+
+// Handle OAuth callback on page load
+(async ()=>{
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+  if(session){
+    authToken=session.access_token;
+    localStorage.setItem('auth_token',authToken);
     document.getElementById('auth-panel').style.display='none';
     await loadWordsFromAPI();
+    build();uCounts();rCard();
     setTab('flash');
   }
-});
+})();
 </script>
 </body>
 </html>

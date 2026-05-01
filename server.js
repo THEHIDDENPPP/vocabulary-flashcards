@@ -1,91 +1,137 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/vocab', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
-
-// User Schema
-const userSchema = new mongoose.Schema({
-  username: String,
-  password: String
-});
-const User = mongoose.model('User', userSchema);
-
-// Word Schema
-const wordSchema = new mongoose.Schema({
-  userId: String,
-  word: String,
-  def: String,
-  ex: String,
-  trick: String,
-  cat: { type: String, default: 'none' }
-});
-const Word = mongoose.model('Word', wordSchema);
-
-// Middleware to verify token
-const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization'];
-  if (!token) return res.status(403).send('Token required');
-  jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, decoded) => {
-    if (err) return res.status(401).send('Invalid token');
-    req.userId = decoded.id;
-    next();
-  });
-};
-
-// Routes
-app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const user = new User({ username, password: hashedPassword });
-  await user.save();
-  res.send('User registered');
-});
-
-app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = await User.findOne({ username });
-  if (!user || !await bcrypt.compare(password, user.password)) {
-    return res.status(401).send('Invalid credentials');
-  }
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret');
-  res.json({ token });
-});
-
-app.get('/words', verifyToken, async (req, res) => {
-  const words = await Word.find({ userId: req.userId });
-  res.json(words);
-});
-
-app.post('/words', verifyToken, async (req, res) => {
-  const word = new Word({ ...req.body, userId: req.userId });
-  await word.save();
-  res.json(word);
-});
-
-app.put('/words/:id', verifyToken, async (req, res) => {
-  const word = await Word.findOneAndUpdate({ _id: req.params.id, userId: req.userId }, req.body, { new: true });
-  res.json(word);
-});
-
-app.delete('/words/:id', verifyToken, async (req, res) => {
-  await Word.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-  res.send('Deleted');
-});
-
-// Serve frontend
 app.use(express.static('public'));
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+// Use a different approach - we'll let the frontend handle auth
+// and just use the Supabase client for data operations
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+// Debugging endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Server is running' });
+});
+
+// Verify auth token
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(403).json({ error: 'Token required' });
+  
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      console.error('Auth error:', error);
+      return res.status(401).json({ error: 'Invalid token', details: error?.message });
+    }
+    
+    req.user = user;
+    next();
+  } catch (e) {
+    console.error('Token verification error:', e);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// Frontend will handle registration/login via Supabase client
+// These endpoints are just for redirects or webhooks if needed
+app.get('/api/register', (req, res) => {
+  res.json({ message: 'Use Supabase client for registration on frontend' });
+});
+
+app.get('/api/login', (req, res) => {
+  res.json({ message: 'Use Supabase client for login on frontend' });
+});
+
+// Get all words for user
+app.get('/api/words', verifyToken, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('words')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Fetch words error:', error);
+      return res.status(400).json({ error: error.message });
+    }
+    res.json(data || []);
+  } catch (e) {
+    console.error('Get words error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add word
+app.post('/api/words', verifyToken, async (req, res) => {
+  const { word, def, ex, trick, cat } = req.body;
+  if (!word || !def) {
+    return res.status(400).json({ error: 'Word and definition required' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('words')
+      .insert([{ word, def, ex: ex || '', trick: trick || '', cat: cat || 'none', user_id: req.user.id }])
+      .select();
+    if (error) {
+      console.error('Insert word error:', error);
+      return res.status(400).json({ error: error.message });
+    }
+    res.json(data[0]);
+  } catch (e) {
+    console.error('Add word error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update word
+app.put('/api/words/:id', verifyToken, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('words')
+      .update(req.body)
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select();
+    if (error) {
+      console.error('Update word error:', error);
+      return res.status(400).json({ error: error.message });
+    }
+    res.json(data[0]);
+  } catch (e) {
+    console.error('Update word error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete word
+app.delete('/api/words/:id', verifyToken, async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('words')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
+    if (error) {
+      console.error('Delete word error:', error);
+      return res.status(400).json({ error: error.message });
+    }
+    res.json({ message: 'Deleted' });
+  } catch (e) {
+    console.error('Delete word error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
