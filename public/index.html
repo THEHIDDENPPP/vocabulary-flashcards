@@ -7,27 +7,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#0f0e0c;--surface:#1a1916;--card:#211f1b;--border:#2e2c27;--border2:#3d3a33;--text:#e8e2d4;--muted:#7a7468;--accent:#e8a838;--accent2:#c4773a;--green:#4caf7d;--yellow:#e8c84a;--red:#e05a4a;--known:#1a2e20;--known-b:#2d5c38;--somewhat:#2a2510;--somewhat-b:#6b5c1a;--unknown:#2a1210;--unknown-b:#6b2a1a}
+:root{--bg:#0f0e0c;--surface:#1a1916;--card:#211f1b;--border:#2e2c27;--border2:#3d3a33;--text:#e8e2d4;--muted:#7a7468;--accent:#e8a838;--accent2:#c4773a;--green:#4caf7d;--yellow:#e8c84a;--red:#e05a4a;--known:#1a2e20;--known-b:#2d5c38;--somewhat:#2a2510;--somewhat-b:#6b5c1a;--unknown:#2a1210;--unknown-b:#6b2a1a;--hard:#241a32;--hard-b:#5c3f76}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden}
-.app{display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px 14px 60px}
+.app{display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:18px 12px 60px}
 header{text-align:center;margin-bottom:18px;padding-top:4px}
 .logo{font-family:'Lora',serif;font-size:clamp(1.4rem,5vw,1.9rem);font-weight:700;color:var(--text)}
 .logo span{color:var(--accent);font-style:italic}
 .tagline{font-size:0.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:3px}
 /* TABS */
-.tabs{display:flex;border:1px solid var(--border2);margin-bottom:16px;background:var(--surface)}
+.tabs{display:flex;border:1px solid var(--border2);margin-bottom:16px;background:var(--surface);flex-wrap:wrap;justify-content:center}
 .tab{font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:.1em;text-transform:uppercase;border:none;background:transparent;color:var(--muted);padding:9px 14px;cursor:pointer;transition:all .15s;white-space:nowrap}
 .tab.active{background:var(--accent);color:var(--bg);font-weight:500}
 .tab:hover:not(.active){color:var(--text);background:var(--border)}
 /* FILTER */
-.filter-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;justify-content:center;width:100%;max-width:500px}
+.filter-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;justify-content:center;width:100%;max-width:500px;position:relative;z-index:2}
 .fbtn{font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:.07em;text-transform:uppercase;border:1px solid var(--border2);background:transparent;color:var(--muted);padding:5px 10px;cursor:pointer;transition:all .15s}
 .fbtn:hover{color:var(--text)}
 .fbtn.f-all.on{border-color:var(--accent);color:var(--accent);background:rgba(232,168,56,.08)}
 .fbtn.f-known.on{border-color:var(--green);color:var(--green);background:rgba(76,175,125,.08)}
 .fbtn.f-somewhat.on{border-color:var(--yellow);color:var(--yellow);background:rgba(232,200,74,.08)}
 .fbtn.f-unknown.on{border-color:var(--red);color:var(--red);background:rgba(224,90,74,.08)}
+.fbtn.f-hard.on{border-color:var(--hard-b);color:var(--hard);background:rgba(92,63,118,.12)}
 .fc{font-size:.55rem;opacity:.7;margin-left:2px}
 /* PROGRESS */
 .pw{width:100%;max-width:500px;margin-bottom:3px}
@@ -35,11 +36,14 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .pf{height:100%;background:var(--accent);transition:width .4s}
 .pl{font-size:.58rem;color:var(--muted);letter-spacing:.07em;text-align:right;margin-top:3px;margin-bottom:12px}
 /* CARD */
-.cw{width:100%;max-width:500px;perspective:1200px;cursor:pointer;margin-bottom:14px}
-.ci{position:relative;width:100%;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.cw{position:relative;width:100%;max-width:500px;perspective:1200px;cursor:pointer;margin-bottom:18px;overflow:visible;z-index:1;transition:transform .25s ease}
+.cw:hover{transform:translateY(-2px)}
+.ci{position:relative;width:100%;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,0,.2,1);will-change:transform}
 .cw.flipped .ci{transform:rotateY(180deg)}
-.cf{backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--border2);padding:clamp(18px,4vw,28px) clamp(16px,4vw,24px);width:100%;min-height:200px;display:flex;flex-direction:column;justify-content:center}
+.cw.card-pop{animation:cardPop .35s ease forwards}
+.cf{backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--border2);padding:clamp(18px,4vw,28px) clamp(16px,4vw,24px);width:100%;min-height:220px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 20px 40px rgba(0,0,0,.15);border-radius:18px}
 .cb{position:absolute;top:0;left:0;transform:rotateY(180deg)}
+@keyframes cardPop{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.01)}100%{transform:translateY(0) scale(1)}}
 .ctag{font-size:.57rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:7px}
 .ctag::before,.ctag::after{content:'';flex:1;height:1px;background:var(--border)}
 .wfront{font-family:'Lora',serif;font-size:clamp(1.5rem,5.5vw,2.8rem);font-weight:700;line-height:1.15;color:var(--text);text-align:center;padding:clamp(10px,2.5vw,20px) 0;word-break:break-word}
@@ -58,17 +62,20 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .nb:disabled{opacity:.25;cursor:not-allowed}
 .nc{font-size:.66rem;color:var(--muted);letter-spacing:.1em;min-width:68px;text-align:center}
 /* CATEGORY */
-.catrow{display:flex;gap:7px;width:100%;max-width:500px;margin-bottom:18px}
+.catrow{display:flex;gap:7px;width:100%;max-width:500px;margin-bottom:18px;flex-wrap:wrap}
 .catbtn{flex:1;font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.05em;padding:9px 4px;border:1px solid;cursor:pointer;transition:all .15s;line-height:1.3;text-align:center;background:transparent}
 .catbtn.known{border-color:var(--known-b);color:var(--green)}
 .catbtn.somewhat{border-color:var(--somewhat-b);color:var(--yellow)}
 .catbtn.unknown{border-color:var(--unknown-b);color:var(--red)}
+.catbtn.hard{border-color:var(--hard-b);color:var(--hard)}
 .catbtn.known:hover,.catbtn.sel-known{background:var(--known)}
 .catbtn.somewhat:hover,.catbtn.sel-somewhat{background:var(--somewhat)}
 .catbtn.unknown:hover,.catbtn.sel-unknown{background:var(--unknown)}
+.catbtn.hard:hover,.catbtn.sel-hard{background:var(--hard)}
 .catbtn.sel-known{border-color:var(--green)}
 .catbtn.sel-somewhat{border-color:var(--yellow)}
 .catbtn.sel-unknown{border-color:var(--red)}
+.catbtn.sel-hard{border-color:var(--hard-b)}
 .clabel{display:block;font-size:.68rem;margin-bottom:1px}
 .csub{display:block;font-size:.53rem;opacity:.6;letter-spacing:.03em}
 /* QUIZ */
@@ -100,6 +107,7 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .wic.known{background:var(--known);color:var(--green);border:1px solid var(--known-b)}
 .wic.somewhat{background:var(--somewhat);color:var(--yellow);border:1px solid var(--somewhat-b)}
 .wic.unknown{background:var(--unknown);color:var(--red);border:1px solid var(--unknown-b)}
+.wic.hard{background:var(--hard);color:var(--accent);border:1px solid var(--hard-b)}
 .wic.none{background:var(--border);color:var(--muted);border:1px solid var(--border2)}
 .wia{display:flex;gap:3px;flex-shrink:0}
 .ibtn{font-size:.72rem;border:1px solid var(--border2);background:transparent;color:var(--muted);width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
@@ -141,6 +149,20 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .imp-card-sub{font-size:.57rem;color:var(--muted);margin-top:3px;letter-spacing:.03em}
 /* Status */
 .imp-status{display:flex!important;flex-direction:column;align-items:center;gap:14px;padding:28px 20px;background:var(--surface);border:1px solid var(--border2);margin-bottom:14px}
+@media(max-width:620px){
+  .app{padding:14px 10px 50px}
+  .tabs{gap:6px}
+  .tab{flex:1 1 48%;padding:10px 10px;font-size:.68rem}
+  .filter-bar{gap:6px}
+  .fbtn{flex:1 1 48%;padding:8px 10px;font-size:.62rem}
+  .pw{max-width:100%}
+  .nc{min-width:50px}
+  .catrow{gap:6px}
+  .catbtn{flex:1 1 48%;padding:10px 6px;font-size:.62rem}
+  .qopts{grid-template-columns:1fr}
+  .qcard,.cw,.qopts{max-width:100%}
+  .cf{min-height:220px}
+}
 .imp-spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .imp-status-text{font-size:.72rem;color:var(--muted);letter-spacing:.07em;text-align:center}
@@ -203,6 +225,7 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
   <button class="fbtn f-all on" onclick="setFilter('all')">All <span class="fc" id="fc-all"></span></button>
   <button class="fbtn f-known" onclick="setFilter('known')">✓ Known <span class="fc" id="fc-known"></span></button>
   <button class="fbtn f-somewhat" onclick="setFilter('somewhat')">~ Somewhat <span class="fc" id="fc-somewhat"></span></button>
+  <button class="fbtn f-hard" onclick="setFilter('hard')">⚠ Hard <span class="fc" id="fc-hard"></span></button>
   <button class="fbtn f-unknown" onclick="setFilter('unknown')">✗ Review <span class="fc" id="fc-unknown"></span></button>
 </div>
 
@@ -239,6 +262,7 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
   <div class="catrow">
     <button class="catbtn known" id="ck" onclick="mark('known')"><span class="clabel">✓ Known</span><span class="csub">got it!</span></button>
     <button class="catbtn somewhat" id="cs" onclick="mark('somewhat')"><span class="clabel">~ Somewhat</span><span class="csub">getting there</span></button>
+    <button class="catbtn hard" id="ch" onclick="mark('hard')"><span class="clabel">⚠ Hard</span><span class="csub">hard to remember</span></button>
     <button class="catbtn unknown" id="cu" onclick="mark('unknown')"><span class="clabel">✗ Review</span><span class="csub">need practice</span></button>
   </div>
 </div>
@@ -563,6 +587,7 @@ function uCounts(){
   document.getElementById('fc-all').textContent=words.length;
   document.getElementById('fc-known').textContent=words.filter(w=>w.cat==='known').length;
   document.getElementById('fc-somewhat').textContent=words.filter(w=>w.cat==='somewhat').length;
+  document.getElementById('fc-hard').textContent=words.filter(w=>w.cat==='hard').length;
   document.getElementById('fc-unknown').textContent=words.filter(w=>w.cat==='unknown').length;
   tot();
 }
@@ -583,7 +608,6 @@ function setTab(t){
 
 // ── FLASH ──
 function rCard(){
-  build();
   const w=fw[fi],n=fw.length;
   if(!w||n===0){
     document.getElementById('fw').textContent='No words here';
@@ -606,9 +630,10 @@ function rCard(){
   document.getElementById('plabel').textContent=`${fi+1} of ${n} cards`;
   document.getElementById('pb').disabled=fi===0;
   document.getElementById('nb2').disabled=fi===n-1;
-  ['known','somewhat','unknown'].forEach(c=>{
-    const btn=document.getElementById('c'+c[0]);
-    btn.className='catbtn '+c+(w.cat===c?' sel-'+c:'');
+  const ids = {known:'ck',somewhat:'cs',hard:'ch',unknown:'cu'};
+  ['known','somewhat','hard','unknown'].forEach(c=>{
+    const btn=document.getElementById(ids[c]);
+    if(btn) btn.className='catbtn '+c+(w.cat===c?' sel-'+c:'');
   });
 }
 function flipCard(){flipped=!flipped;document.getElementById('cw').classList.toggle('flipped',flipped);}
@@ -621,23 +646,38 @@ function mark(cat){
     words[gi].cat=cat;
     if(words[gi].id) updateWordToAPI(words[gi]);
     save();uCounts();
-    // Auto-advance logic
+
+    document.getElementById('cw').classList.remove('flipped');
+    flipped=false;
+
+    const removed = fw.splice(fi,1)[0];
     if(cat==='known'){
-      // Remove from current stack
-      fw.splice(fi,1);
-      if(fi>=fw.length)fi=fw.length-1;
-    }else{
-      // Move to back for 'unknown' and 'somewhat'
-      fw.splice(fi,1);
-      fw.push(w);
-      if(fi>=fw.length)fi=fw.length-1;
+      if(fi>=fw.length) fi = Math.max(0, fw.length-1);
+    } else if(cat==='somewhat'){
+      const insertPos = Math.min(fi+1, fw.length);
+      fw.splice(insertPos,0, removed);
+    } else if(cat==='hard'){
+      const insertPos = Math.min(fi+2, fw.length);
+      fw.splice(insertPos,0, removed);
+    } else {
+      fw.push(removed);
     }
+
     if(fw.length===0){
-      rCard(); // Show no words
-    }else{
+      rCard();
+    } else {
+      if(fi>=fw.length) fi = fw.length-1;
+      animateCardSwap();
       rCard();
     }
   }
+}
+
+function animateCardSwap(){
+  const card = document.getElementById('cw');
+  card.classList.remove('card-pop');
+  void card.offsetWidth;
+  card.classList.add('card-pop');
 }
 
 // ── QUIZ ──
@@ -737,6 +777,7 @@ document.addEventListener('keydown',e=>{
     if(e.key==='1')mark('known');
     if(e.key==='2')mark('somewhat');
     if(e.key==='3')mark('unknown');
+    if(e.key==='4')mark('hard');
   }
 });
 
