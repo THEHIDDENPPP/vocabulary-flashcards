@@ -36,13 +36,13 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .pf{height:100%;background:var(--accent);transition:width .4s}
 .pl{font-size:.58rem;color:var(--muted);letter-spacing:.07em;text-align:right;margin-top:3px;margin-bottom:12px}
 /* CARD */
-.cw{position:relative;width:100%;max-width:500px;perspective:1200px;cursor:pointer;margin-bottom:18px;overflow:visible;z-index:1;transition:transform .25s ease}
+.cw{position:relative;width:100%;max-width:500px;perspective:1200px;cursor:pointer;margin-bottom:24px;overflow:visible;z-index:1;transition:transform .25s ease}
 .cw:hover{transform:translateY(-2px)}
-.ci{position:relative;width:100%;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,0,.2,1);will-change:transform}
+.ci{position:relative;width:100%;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.4,0,.2,1);will-change:transform;min-height:340px}
 .cw.flipped .ci{transform:rotateY(180deg)}
 .cw.card-pop{animation:cardPop .35s ease forwards}
-.cf{backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--border2);padding:clamp(18px,4vw,28px) clamp(16px,4vw,24px);width:100%;min-height:220px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 20px 40px rgba(0,0,0,.15);border-radius:18px}
-.cb{position:absolute;top:0;left:0;transform:rotateY(180deg)}
+.cf{backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1px solid var(--border2);padding:clamp(18px,4vw,28px) clamp(16px,4vw,24px);width:100%;min-height:340px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 20px 40px rgba(0,0,0,.15);border-radius:18px}
+.cb{position:absolute;inset:0;transform:rotateY(180deg);}
 @keyframes cardPop{0%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.01)}100%{transform:translateY(0) scale(1)}}
 .ctag{font-size:.57rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:7px}
 .ctag::before,.ctag::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -161,7 +161,8 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
   .catbtn{flex:1 1 48%;padding:10px 6px;font-size:.62rem}
   .qopts{grid-template-columns:1fr}
   .qcard,.cw,.qopts{max-width:100%}
-  .cf{min-height:220px}
+  .cf{min-height:320px}
+  .ci{min-height:320px}
 }
 .imp-spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
