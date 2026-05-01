@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const fetchLib = globalThis.fetch || require('node-fetch');
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -43,7 +44,7 @@ async function callAnthropic(bodyData) {
   if (!anthropicKey) {
     throw new Error('Anthropic API key not configured on the server. Set ANTHROPIC_API_KEY.');
   }
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetchLib('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
