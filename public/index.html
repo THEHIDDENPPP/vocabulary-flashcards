@@ -800,32 +800,129 @@ async function importDoc(file){
 async function importExcelCSV(file){
   showImpStatus('📊 Reading spreadsheet…');
   let text='';
-  if(file.name.endsWith('.csv')||file.type==='text/csv')text=await file.text();
-  else text=await extractXlsxAsText(file);
-  showImpStatus('🤖 AI is extracting vocabulary…');
-  const result=await callClaudeText(text);
-  hideImpStatus();showPreview(result,file.name);
+  if(file.name.endsWith('.csv')||file.type==='text/csv'){
+    text=await file.text();
+  } else {
+    text=await extractXlsxAsText(file);
+  }
+  const result=parseStructuredVocabulary(text, file.name);
+  hideImpStatus();
+  showPreview(result,file.name);
 }
 async function importText(file){
-  showImpStatus('🤖 AI is extracting vocabulary…');
+  showImpStatus('📄 Reading plain text…');
   const text=await file.text();
-  const result=await callClaudeText(text);
-  hideImpStatus();showPreview(result,file.name);
+  const result=parseStructuredVocabulary(text, file.name);
+  hideImpStatus();
+  showPreview(result,file.name);
+}
+
+function parseStructuredVocabulary(text, filename){
+  const normalized = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
+  if(!normalized) throw new Error('File is empty or unreadable.');
+
+  const items = [];
+  const blockPattern = /(?:^|\n{2,})([\s\S]*?)(?=\n{2,}|$)/g;
+  let match;
+  while((match = blockPattern.exec(normalized)) !== null){
+    const block = match[1].trim();
+    if(!block) continue;
+    const item = parseBlock(block);
+    if(item) items.push(item);
+  }
+
+  if(items.length === 0){
+    const tableItems = parseTableStyle(normalized);
+    if(tableItems.length) return dedupeVocabulary(tableItems);
+    throw new Error('No vocabulary entries found. Use the key=value format or a simple table with headers.');
+  }
+
+  return dedupeVocabulary(items);
+}
+
+function parseBlock(block){
+  const lines = block.split('\n').map(line => line.trim()).filter(Boolean);
+  const item = { word:'', def:'', ex:'', trick:'' };
+  let hasKeyed=false;
+
+  for(const line of lines){
+    const eqIndex = line.indexOf('=');
+    const colonIndex = line.indexOf(':');
+    const sepIndex = eqIndex >= 0 ? eqIndex : colonIndex >= 0 ? colonIndex : -1;
+    if(sepIndex > 0){
+      const rawKey = line.slice(0, sepIndex).trim().toLowerCase();
+      const rawVal = line.slice(sepIndex + 1).trim();
+      let key = rawKey.replace(/[^a-z]/g,'');
+      if(key.startsWith('meaning')) key='def';
+      if(key === 'definition') key='def';
+      if(key === 'memo' || key==='mnemonic' || key==='memorytrick' || key==='memory') key='trick';
+      if(key === 'example') key='ex';
+      if(key === 'word') key='word';
+
+      if(['word','def','ex','trick'].includes(key)){
+        item[key] = rawVal;
+        hasKeyed=true;
+        continue;
+      }
+    }
+  }
+
+  if(hasKeyed && item.word && item.def) return item;
+
+  if(lines.length >= 2){
+    if(!item.word) item.word = lines[0];
+    if(!item.def) item.def = lines[1];
+    if(lines[2] && !item.ex) item.ex = lines[2];
+    if(lines[3] && !item.trick) item.trick = lines[3];
+    if(item.word && item.def) return item;
+  }
+
+  return null;
+}
+
+function parseTableStyle(text){
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+  if(lines.length < 2) return [];
+
+  const delimiters = [',','\t',';','|'];
+  let delimiter = delimiters.find(d => lines[0].split(d).length > 1) || ',';
+  const headerCells = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/[^a-z]/g, ''));
+  const wordIndex = headerCells.findIndex(c => c === 'word' || c === 'term' || c === 'vocab');
+  const defIndex = headerCells.findIndex(c => c === 'meaning' || c === 'definition' || c === 'def');
+  const exIndex = headerCells.findIndex(c => c === 'example' || c === 'ex');
+  const trickIndex = headerCells.findIndex(c => c === 'trick' || c === 'mnemonic' || c === 'memory');
+
+  if(wordIndex === -1 || defIndex === -1) return [];
+
+  return lines.slice(1).map(line => {
+    const cells = line.split(delimiter).map(cell => cell.trim());
+    return {
+      word: cells[wordIndex] || '',
+      def: cells[defIndex] || '',
+      ex: cells[exIndex] || '',
+      trick: cells[trickIndex] || ''
+    };
+  }).filter(item => item.word && item.def);
+}
+
+function dedupeVocabulary(items){
+  const seen = new Set();
+  return items.reduce((result, item) => {
+    const key = item.word.trim().toLowerCase();
+    if(!key || seen.has(key)) return result;
+    seen.add(key);
+    result.push({
+      word: item.word.trim(),
+      def: item.def.trim(),
+      ex: item.ex.trim(),
+      trick: item.trick.trim()
+    });
+    return result;
+  }, []);
 }
 
 const SYS_PROMPT=`You are a vocabulary extraction assistant. Extract ALL vocabulary words and definitions from the content provided.
 
-Return ONLY a valid JSON array — no markdown, no explanation, nothing else. Raw JSON only.
-
-Each object must have exactly these keys:
-- "word": the vocabulary word or phrase
-- "def": clear, concise definition
-- "ex": a natural example sentence using the word in everyday life (create a good one if not provided)
-- "trick": a fun, memorable mnemonic (etymology, sound link, visual, wordplay) to remember this word
-
-Rules:
-- Extract EVERY word-definition pair you can find
-- For handwritten notes: interpret → - : as "means"
 - For tables: first column = word, second = definition typically  
 - Always generate helpful examples and memory tricks
 - If only words with no definitions exist, define them properly
