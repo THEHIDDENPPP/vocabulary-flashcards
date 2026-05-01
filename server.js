@@ -11,9 +11,12 @@ app.use(express.static('public'));
 
 // Use a different approach - we'll let the frontend handle auth
 // and just use the Supabase client for data operations
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
 const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  supabaseUrl,
+  supabaseAnonKey
 );
 
 // Debugging endpoint
