@@ -459,13 +459,18 @@ async function loadWordsFromAPI(){
     const res=await fetch(API_URL+'/words',{
       headers:{'Authorization':`Bearer ${authToken}`}
     });
-    if(res.ok) words=await res.json();
+    if(res.ok) {
+      words=await res.json();
+      localStorage.setItem('vv2_words',JSON.stringify(words));
+    } else {
+      console.warn('Failed to load words from API', res.status);
+    }
   }catch(e){console.error(e);}
 }
 
 // Save word to API
 async function saveWordToAPI(word){
-  if(!authToken) return;
+  if(!authToken || word.id) return null;
   try{
     const res=await fetch(API_URL+'/words',{
       method:'POST',
@@ -473,18 +478,60 @@ async function saveWordToAPI(word){
         'Authorization':`Bearer ${authToken}`,
         'Content-Type':'application/json'
       },
-      body:JSON.stringify(word)
+      body:JSON.stringify({
+        word: word.word,
+        def: word.def,
+        ex: word.ex || '',
+        trick: word.trick || '',
+        cat: word.cat || 'none'
+      })
+    });
+    const saved = res.ok?await res.json():null;
+    if(saved?.id) word.id=saved.id;
+    return saved;
+  }catch(e){console.error(e);return null;}
+}
+
+async function updateWordToAPI(word){
+  if(!authToken || !word?.id) return null;
+  try{
+    const res=await fetch(`${API_URL}/words/${word.id}`,{
+      method:'PUT',
+      headers:{
+        'Authorization':`Bearer ${authToken}`,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify({
+        word: word.word,
+        def: word.def,
+        ex: word.ex || '',
+        trick: word.trick || '',
+        cat: word.cat || 'none'
+      })
     });
     return res.ok?await res.json():null;
   }catch(e){console.error(e);return null;}
 }
+
+async function deleteWordFromAPI(id){
+  if(!authToken || !id) return false;
+  try{
+    const res=await fetch(`${API_URL}/words/${id}`,{
+      method:'DELETE',
+      headers:{'Authorization':`Bearer ${authToken}`}
+    });
+    return res.ok;
+  }catch(e){console.error(e);return false;}
+}
+
 let filter='all',tab='flash',fw=[],fi=0,flipped=false,editIdx=null;
 let qq=[],qi=0,qc=0,qw2=0,qa=false;
 
 function save(){
   localStorage.setItem('vv2_words',JSON.stringify(words));
-  // Also save to API if authenticated
-  if(authToken) words.forEach(w=>saveWordToAPI(w));
+  if(authToken) {
+    words.filter(w=>!w.id).forEach(saveWordToAPI);
+  }
 }
 function tot(){document.getElementById('total-c').textContent=words.length;}
 
@@ -560,6 +607,7 @@ function mark(cat){
   const gi=words.indexOf(w);
   if(gi>-1){
     words[gi].cat=cat;
+    if(words[gi].id) updateWordToAPI(words[gi]);
     save();uCounts();
     // Auto-advance logic
     if(cat==='known'){
@@ -630,7 +678,12 @@ function rList(){
   if(!words.length){l.innerHTML='<div class="empty">No words yet.<br>Hit "+ Add Word" to begin.</div>';return;}
   l.innerHTML=words.map((w,i)=>`<div class="witem"><div class="wiw">${w.word}</div><div class="wid">${w.def}</div><div class="wic ${w.cat}">${w.cat==='none'?'–':w.cat}</div><div class="wia"><button class="ibtn ed" onclick="openM(${i})" title="Edit">✎</button><button class="ibtn dl" onclick="rmW(${i})" title="Remove">✕</button></div></div>`).join('');
 }
-function rmW(i){if(!confirm(`Remove "${words[i].word}"?`))return;words.splice(i,1);save();uCounts();rList();}
+function rmW(i){
+  if(!confirm(`Remove "${words[i].word}"?`))return;
+  if(words[i]?.id) deleteWordFromAPI(words[i].id);
+  words.splice(i,1);
+  save();uCounts();rList();
+}
 
 // ── MODAL ──
 function openM(i=null){
@@ -647,8 +700,16 @@ function saveW(){
   const word=document.getElementById('mw').value.trim();
   const def=document.getElementById('mdef').value.trim();
   if(!word||!def){alert('Word and definition are required.');return;}
-  const entry={word,def,ex:document.getElementById('mex').value.trim(),trick:document.getElementById('mtr').value.trim(),cat:editIdx!==null?words[editIdx].cat:'none'};
-  if(editIdx!==null)words[editIdx]=entry;else words.push(entry);
+  if(editIdx!==null){
+    const existing=words[editIdx];
+    existing.word=word;
+    existing.def=def;
+    existing.ex=document.getElementById('mex').value.trim();
+    existing.trick=document.getElementById('mtr').value.trim();
+    if(existing.id) updateWordToAPI(existing);
+  } else {
+    words.push({word,def,ex:document.getElementById('mex').value.trim(),trick:document.getElementById('mtr').value.trim(),cat:'none'});
+  }
   save();uCounts();closeM();rList();build();
   if(tab==='flash')rCard();
 }
@@ -759,53 +820,39 @@ Rules:
 - Remove duplicates, return minimum 1 item
 - Output ONLY the JSON array, nothing else`;
 
-async function callClaudeVision(b64,mt){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:SYS_PROMPT,
-      messages:[{role:'user',content:[
-        {type:'image',source:{type:'base64',media_type:mt,data:b64}},
-        {type:'text',text:'Extract all vocabulary words and definitions from this image. Return only a JSON array.'}
-      ]}]})
+async function callImportAPI(payload){
+  if(!authToken) throw new Error('Please log in before importing files.');
+  const res = await fetch(API_URL+'/import', {
+    method:'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${authToken}`
+    },
+    body: JSON.stringify(payload)
   });
-  return parseResp(r);
+  if(!res.ok){
+    const errorBody = await res.json().catch(()=>({}));
+    throw new Error(errorBody.error || errorBody.message || `Import failed (${res.status})`);
+  }
+  const data = await res.json();
+  if(!Array.isArray(data.words)) throw new Error('Invalid response from import service.');
+  return data.words;
+}
+async function callClaudeVision(b64,mt){
+  return await callImportAPI({type:'vision', content:b64, mediaType:mt});
 }
 async function callClaudePDF(b64){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:SYS_PROMPT,
-      messages:[{role:'user',content:[
-        {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
-        {type:'text',text:'Extract all vocabulary words and definitions from this document. Return only a JSON array.'}
-      ]}]})
-  });
-  return parseResp(r);
+  return await callImportAPI({type:'pdf', content:b64});
 }
 async function callClaudeText(text){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:SYS_PROMPT,
-      messages:[{role:'user',content:`Extract all vocabulary words and definitions from this text. Return only a JSON array.\n\n${text.substring(0,8000)}`}]})
-  });
-  return parseResp(r);
+  return await callImportAPI({type:'text', text});
 }
 async function parseResp(response){
   if(!response.ok){
     const e=await response.json().catch(()=>({}));
     throw new Error(e.error?.message||`API error ${response.status}`);
   }
-  const data=await response.json();
-  const raw=(data.content||[]).map(b=>b.text||'').join('');
-  const cleaned=raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
-  try{
-    const p=JSON.parse(cleaned);
-    if(!Array.isArray(p))throw new Error('not array');
-    return p;
-  }catch{
-    const m=cleaned.match(/\[[\s\S]*\]/);
-    if(m)return JSON.parse(m[0]);
-    throw new Error('Could not parse AI response. Try a clearer image or different file format.');
-  }
+  return response.json();
 }
 
 function fileToBase64(file){
