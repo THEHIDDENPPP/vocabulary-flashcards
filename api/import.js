@@ -1,14 +1,26 @@
 const { createClient } = require('@supabase/supabase-js');
 const fetchLib = globalThis.fetch || require('node-fetch');
 
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
-const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
+function getConfig() {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase credentials not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.');
+  }
+  if (!anthropicKey) {
+    throw new Error('Anthropic API key not configured. Set ANTHROPIC_API_KEY.');
+  }
+  
+  return {
+    supabase: createClient(supabaseUrl, supabaseAnonKey),
+    anthropicKey,
+    anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514'
+  };
+}
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-async function verifyToken(req, res) {
+async function verifyToken(req, res, supabase) {
   const authHeader = req.headers.authorization || req.headers.Authorization;
   if (!authHeader) {
     res.status(403).json({ error: 'Token required' });
@@ -40,10 +52,7 @@ function parseJsonArray(text) {
   }
 }
 
-async function callAnthropic(bodyData) {
-  if (!anthropicKey) {
-    throw new Error('Anthropic API key not configured on the server. Set ANTHROPIC_API_KEY.');
-  }
+async function callAnthropic(bodyData, anthropicKey, anthropicModel) {
   const response = await fetchLib('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -92,25 +101,26 @@ Rules:
 }
 
 module.exports = async (req, res) => {
-  if (req.method === 'OPTIONS') {
-    return res.status(200).send('OK');
-  }
-
-  const user = await verifyToken(req, res);
-  if (!user) return;
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST', 'OPTIONS']);
-    return res.status(405).json({ error: `Method ${req.method} not allowed` });
-  }
-
-  const body = req.body || {};
-  const { type, content, text, mediaType } = body;
-  if (!type) {
-    return res.status(400).json({ error: 'Import type is required' });
-  }
-
   try {
+    if (req.method === 'OPTIONS') {
+      return res.status(200).send('OK');
+    }
+
+    const { supabase, anthropicKey, anthropicModel } = getConfig();
+    const user = await verifyToken(req, res, supabase);
+    if (!user) return;
+
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', ['POST', 'OPTIONS']);
+      return res.status(405).json({ error: `Method ${req.method} not allowed` });
+    }
+
+    const body = req.body || {};
+    const { type, content, text, mediaType } = body;
+    if (!type) {
+      return res.status(400).json({ error: 'Import type is required' });
+    }
+
     if (type === 'vision') {
       if (!content || !mediaType) throw new Error('Missing image content or mediaType');
       const words = await callAnthropic({
@@ -123,7 +133,7 @@ module.exports = async (req, res) => {
             ]
           }
         ]
-      });
+      }, anthropicKey, anthropicModel);
       return res.json({ words });
     }
 
@@ -139,7 +149,7 @@ module.exports = async (req, res) => {
             ]
           }
         ]
-      });
+      }, anthropicKey, anthropicModel);
       return res.json({ words });
     }
 
@@ -152,7 +162,7 @@ module.exports = async (req, res) => {
             content: `Extract all vocabulary words and definitions from this text. Return only a JSON array.\n\n${text.substring(0, 8000)}`
           }
         ]
-      });
+      }, anthropicKey, anthropicModel);
       return res.json({ words });
     }
 
