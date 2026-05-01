@@ -165,6 +165,15 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 </style>
 </head>
 <body>
+  <div id="auth-panel" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;">
+  <div style="background:var(--card);border:1px solid var(--border2);padding:30px;max-width:400px;width:90%;">
+    <h2 style="color:var(--accent);margin-bottom:20px;font-family:'Lora',serif;">Login / Register</h2>
+    <input id="auth-email" type="email" placeholder="Email" style="width:100%;padding:10px;margin-bottom:10px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:inherit;">
+    <input id="auth-password" type="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:10px;background:var(--surface);border:1px solid var(--border2);color:var(--text);font-family:inherit;">
+    <button onclick="loginUser()" style="width:100%;padding:10px;background:var(--accent);color:var(--bg);border:none;cursor:pointer;margin-bottom:5px;">Login</button>
+    <button onclick="registerUser()" style="width:100%;padding:10px;background:var(--border2);color:var(--text);border:none;cursor:pointer;">Register</button>
+  </div>
+</div>
 <div class="app">
 <header>
   <div class="logo">Vocab<span>Vault</span></div>
@@ -421,11 +430,44 @@ const DEFS=[
   {word:"Aberrant",def:"Departing from what is normal, expected or correct; deviating from the standard.",ex:"The data showed an aberrant reading that didn't fit any established pattern.",trick:"'Ab' (away) + 'errant' (wandering). Aberrant = wandering AWAY from the normal path."},
 ];
 
-let words=JSON.parse(localStorage.getItem('vv2_words')||'null')||DEFS.map(w=>({...w,cat:'none'}));
+let words=[];
+let authToken=localStorage.getItem('auth_token');
+const API_URL='/api';
+
+// Load words from API
+async function loadWordsFromAPI(){
+  if(!authToken) return;
+  try{
+    const res=await fetch(API_URL+'/words',{
+      headers:{'Authorization':`Bearer ${authToken}`}
+    });
+    if(res.ok) words=await res.json();
+  }catch(e){console.error(e);}
+}
+
+// Save word to API
+async function saveWordToAPI(word){
+  if(!authToken) return;
+  try{
+    const res=await fetch(API_URL+'/words',{
+      method:'POST',
+      headers:{
+        'Authorization':`Bearer ${authToken}`,
+        'Content-Type':'application/json'
+      },
+      body:JSON.stringify(word)
+    });
+    return res.ok?await res.json():null;
+  }catch(e){console.error(e);return null;}
+}
 let filter='all',tab='flash',fw=[],fi=0,flipped=false,editIdx=null;
 let qq=[],qi=0,qc=0,qw2=0,qa=false;
 
-function save(){localStorage.setItem('vv2_words',JSON.stringify(words));}
+function save(){
+  localStorage.setItem('vv2_words',JSON.stringify(words));
+  // Also save to API if authenticated
+  if(authToken) words.forEach(w=>saveWordToAPI(w));
+}
 function tot(){document.getElementById('total-c').textContent=words.length;}
 
 function setFilter(f){
@@ -1330,6 +1372,58 @@ DEFS.push(...GRE_EXTRA);
 
 // INIT
 build();uCounts();rCard();
+async function loginUser(){
+  const email=document.getElementById('auth-email').value;
+  const password=document.getElementById('auth-password').value;
+  if(!email||!password){alert('Enter email and password');return;}
+  try{
+    const res=await fetch('/api/login',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,password})
+    });
+    if(res.ok){
+      const data=await res.json();
+      authToken=data.session.access_token;
+      localStorage.setItem('auth_token',authToken);
+      document.getElementById('auth-panel').style.display='none';
+      await loadWordsFromAPI();
+      setTab('flash');
+    }else{
+      const err=await res.json();
+      alert('Login failed: '+err.error);
+    }
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function registerUser(){
+  const email=document.getElementById('auth-email').value;
+  const password=document.getElementById('auth-password').value;
+  if(!email||!password){alert('Enter email and password');return;}
+  try{
+    const res=await fetch('/api/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,password})
+    });
+    if(res.ok){
+      alert('Account created! Now log in.');
+    }else{
+      const err=await res.json();
+      alert('Registration failed: '+err.error);
+    }
+  }catch(e){alert('Error: '+e.message);}
+}
+
+// Check if already logged in
+window.addEventListener('load',async ()=>{
+  authToken=localStorage.getItem('auth_token');
+  if(authToken){
+    document.getElementById('auth-panel').style.display='none';
+    await loadWordsFromAPI();
+    setTab('flash');
+  }
+});
 </script>
 </body>
 </html>
