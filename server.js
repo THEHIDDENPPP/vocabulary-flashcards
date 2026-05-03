@@ -7,18 +7,14 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Use a different approach - we'll let the frontend handle auth
-// and just use the Supabase client for data operations
+// Supabase setup
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 function getRequestSupabaseClient(token) {
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,25 +27,36 @@ function getRequestSupabaseClient(token) {
   );
 }
 
-// Debugging endpoint
+// ── Config endpoint (serves Supabase URL+key to frontend) ──
+app.get('/api/config', (req, res) => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return res.status(500).json({ error: 'Supabase config not available.' });
+  }
+  res.json({ url: supabaseUrl, anonKey: supabaseAnonKey });
+});
+
+// ── Health check ──
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
 
-// Verify auth token
+// ── Import endpoint (delegates to api/import.js) ──
+const importHandler = require('./api/import');
+app.post('/api/import', (req, res) => importHandler(req, res));
+
+// ── Auth middleware ──
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(403).json({ error: 'Token required' });
-  
+
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-  
+
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (error || !user) {
       console.error('Auth error:', error);
       return res.status(401).json({ error: 'Invalid token', details: error?.message });
     }
-    
     req.user = user;
     req.supabase = getRequestSupabaseClient(token);
     next();
@@ -59,17 +66,7 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Frontend will handle registration/login via Supabase client
-// These endpoints are just for redirects or webhooks if needed
-app.get('/api/register', (req, res) => {
-  res.json({ message: 'Use Supabase client for registration on frontend' });
-});
-
-app.get('/api/login', (req, res) => {
-  res.json({ message: 'Use Supabase client for login on frontend' });
-});
-
-// Get all words for user
+// ── Words CRUD ──
 app.get('/api/words', verifyToken, async (req, res) => {
   try {
     const { data, error } = await req.supabase
@@ -88,7 +85,6 @@ app.get('/api/words', verifyToken, async (req, res) => {
   }
 });
 
-// Add word
 app.post('/api/words', verifyToken, async (req, res) => {
   const { word, def, ex, trick, cat } = req.body;
   if (!word || !def) {
@@ -110,7 +106,6 @@ app.post('/api/words', verifyToken, async (req, res) => {
   }
 });
 
-// Update word
 app.put('/api/words/:id', verifyToken, async (req, res) => {
   try {
     const { data, error } = await req.supabase
@@ -130,7 +125,6 @@ app.put('/api/words/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Delete word
 app.delete('/api/words/:id', verifyToken, async (req, res) => {
   try {
     const { error } = await req.supabase

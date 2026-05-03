@@ -186,9 +186,64 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .imp-sel-all{font-size:.62rem;color:var(--muted);cursor:pointer;letter-spacing:.06em;background:transparent;border:none;text-decoration:underline;text-underline-offset:3px}
 .imp-sel-all:hover{color:var(--text)}
 .imp-err{background:rgba(224,90,74,.08);border:1px solid rgba(224,90,74,.3);padding:12px 14px;font-size:.73rem;color:var(--red);line-height:1.6;margin-bottom:10px}
+/* PROFILE */
+.profile-area{position:fixed;top:14px;right:14px;z-index:50}
+.profile-btn{width:38px;height:38px;border-radius:50%;border:2px solid var(--border2);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0}
+.profile-btn:hover{border-color:var(--accent);transform:scale(1.05)}
+.profile-avatar{width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-weight:700;font-size:.85rem;color:var(--accent);background:rgba(232,168,56,.1);text-transform:uppercase}
+.profile-dropdown{position:absolute;top:48px;right:0;min-width:260px;background:var(--card);border:1px solid var(--border2);box-shadow:0 12px 36px rgba(0,0,0,.4);opacity:0;transform:translateY(-8px);pointer-events:none;transition:all .2s ease;border-radius:8px;overflow:hidden}
+.profile-dropdown.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.profile-head{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.profile-avatar-lg{width:42px;height:42px;border-radius:50%;background:rgba(232,168,56,.12);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-weight:700;font-size:1.1rem;color:var(--accent);text-transform:uppercase;flex-shrink:0}
+.profile-details{flex:1;min-width:0}
+.profile-email{font-size:.75rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-provider{font-size:.6rem;color:var(--muted);letter-spacing:.05em;margin-top:2px;text-transform:uppercase}
+.profile-stats{padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;border-bottom:1px solid var(--border)}
+.profile-stat{font-size:.62rem;color:var(--muted);letter-spacing:.04em}
+.profile-stat-val{font-weight:600;color:var(--text);font-size:.78rem;display:block;margin-top:2px}
+.profile-signout{width:100%;padding:12px 16px;background:transparent;border:none;color:var(--red);font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;text-align:left;transition:background .15s}
+.profile-signout:hover{background:rgba(224,90,74,.08)}
+/* STARTER PACK */
+.starter-pack{width:100%;max-width:500px;text-align:center;padding:30px 20px;background:var(--surface);border:1px solid var(--border2);margin-bottom:20px;border-radius:8px}
+.starter-title{font-family:'Lora',serif;font-size:1.1rem;color:var(--text);font-style:italic;margin-bottom:8px}
+.starter-sub{font-size:.68rem;color:var(--muted);line-height:1.6;margin-bottom:16px}
+.starter-btn{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--accent);background:rgba(232,168,56,.08);color:var(--accent);padding:10px 20px;cursor:pointer;transition:all .15s;border-radius:4px}
+.starter-btn:hover{background:var(--accent);color:var(--bg)}
+/* AUTH LOADING */
+.auth-loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1001;gap:16px}
+.auth-loading .imp-spinner{width:40px;height:40px}
+.auth-loading-text{font-size:.75rem;color:var(--muted);letter-spacing:.08em}
 </style>
 </head>
 <body>
+  <!-- Auth loading overlay -->
+  <div class="auth-loading hidden" id="auth-loading">
+    <div class="imp-spinner"></div>
+    <div class="auth-loading-text">Signing you in…</div>
+  </div>
+
+  <!-- Profile floating area -->
+  <div class="profile-area hidden" id="profile-area">
+    <button class="profile-btn" onclick="toggleProfile()" title="Profile">
+      <div class="profile-avatar" id="profile-avatar">?</div>
+    </button>
+    <div class="profile-dropdown" id="profile-dropdown">
+      <div class="profile-head">
+        <div class="profile-avatar-lg" id="profile-avatar-lg">?</div>
+        <div class="profile-details">
+          <div class="profile-email" id="profile-email">user@email.com</div>
+          <div class="profile-provider" id="profile-provider">Email</div>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat">Total<span class="profile-stat-val" id="ps-total">0</span></div>
+        <div class="profile-stat">Known<span class="profile-stat-val" id="ps-known">0</span></div>
+        <div class="profile-stat">Learning<span class="profile-stat-val" id="ps-learning">0</span></div>
+        <div class="profile-stat">Review<span class="profile-stat-val" id="ps-review">0</span></div>
+      </div>
+      <button class="profile-signout" onclick="logoutUser()">⏻ Sign Out</button>
+    </div>
+  </div>
   <div id="auth-panel" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px;">
   <div style="background:var(--card);border:1px solid var(--border2);padding:40px;max-width:400px;width:100%;">
     <h2 style="color:var(--accent);margin-bottom:10px;font-family:'Lora',serif;text-align:center;font-size:1.8rem;">Vocab Vault</h2>
@@ -280,6 +335,13 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 <div id="tab-manage" class="hidden mwrap">
   <div class="mhead"><div class="mtitle">Your Word Library</div><button class="addbtn" onclick="openM()">+ Add Word</button></div>
   <div class="wlist" id="wl"></div>
+</div>
+
+<!-- STARTER PACK (shown when no words) -->
+<div id="starter-pack" class="starter-pack hidden">
+  <div class="starter-title">Your library is empty</div>
+  <div class="starter-sub">Import your own vocabulary or load 300+ GRE words to get started</div>
+  <button class="starter-btn" onclick="loadSampleWords()">Load Sample GRE Words</button>
 </div>
 
 <!-- IMPORT -->
@@ -486,7 +548,8 @@ const DEFS=[
 ];
 
 let words=[];
-let authToken=localStorage.getItem('auth_token');
+let authToken=null;
+let currentUser=null;
 const API_URL='/api';
 
 // Load words from API
@@ -615,12 +678,27 @@ function setFilter(f){
 }
 function build(){fw=filter==='all'?[...words]:words.filter(w=>w.cat===filter);}
 function uCounts(){
+  const known=words.filter(w=>w.cat==='known').length;
+  const somewhat=words.filter(w=>w.cat==='somewhat').length;
+  const hard=words.filter(w=>w.cat==='hard').length;
+  const unknown=words.filter(w=>w.cat==='unknown').length;
   document.getElementById('fc-all').textContent=words.length;
-  document.getElementById('fc-known').textContent=words.filter(w=>w.cat==='known').length;
-  document.getElementById('fc-somewhat').textContent=words.filter(w=>w.cat==='somewhat').length;
-  document.getElementById('fc-hard').textContent=words.filter(w=>w.cat==='hard').length;
-  document.getElementById('fc-unknown').textContent=words.filter(w=>w.cat==='unknown').length;
+  document.getElementById('fc-known').textContent=known;
+  document.getElementById('fc-somewhat').textContent=somewhat;
+  document.getElementById('fc-hard').textContent=hard;
+  document.getElementById('fc-unknown').textContent=unknown;
   tot();
+  // Update profile stats
+  const pst=document.getElementById('ps-total');
+  if(pst){
+    pst.textContent=words.length;
+    document.getElementById('ps-known').textContent=known;
+    document.getElementById('ps-learning').textContent=somewhat+hard;
+    document.getElementById('ps-review').textContent=unknown;
+  }
+  // Show/hide starter pack
+  const sp=document.getElementById('starter-pack');
+  if(sp) sp.classList.toggle('hidden', words.length>0);
 }
 
 function setTab(t){
@@ -1626,43 +1704,133 @@ const GRE_EXTRA=[
   {word:"Zenith",def:"The time at which something is most powerful or successful; the highest point.",ex:"Her career reached its zenith when she was appointed Chief Justice.",trick:"'Zenith' is astronomy's highest point in the sky. Zenith = THE TOP. Peak of the arc."},
   {word:"Zeal",def:"Great energy or enthusiasm in pursuit of a cause or objective.",ex:"He threw himself into the project with a zeal that inspired the whole team.",trick:"'Zeal' is the root of zealous. One syllable, maximum fire. Zeal = burning PURPOSE."},
 ];
-DEFS.push(...GRE_EXTRA);
+// Combine sample words (not auto-loaded into user's library)
+const SAMPLE_WORDS = [...DEFS, ...GRE_EXTRA];
 
-// Check if already logged in - Initialize UI
+// ── PROFILE & AUTH HELPERS ──
+function updateProfileUI(user){
+  if(!user){
+    document.getElementById('profile-area').classList.add('hidden');
+    return;
+  }
+  currentUser=user;
+  const email=user.email||'User';
+  const initial=email.charAt(0).toUpperCase();
+  const provider=user.app_metadata?.provider||'email';
+  document.getElementById('profile-avatar').textContent=initial;
+  document.getElementById('profile-avatar-lg').textContent=initial;
+  document.getElementById('profile-email').textContent=email;
+  document.getElementById('profile-provider').textContent=provider==='google'?'Google Account':'Email / Password';
+  document.getElementById('profile-area').classList.remove('hidden');
+  uCounts();
+}
+
+function toggleProfile(){
+  const dd=document.getElementById('profile-dropdown');
+  dd.classList.toggle('show');
+  if(dd.classList.contains('show')){
+    uCounts();
+    setTimeout(()=>document.addEventListener('click',closeProfileOutside,{once:true}),0);
+  }
+}
+function closeProfileOutside(e){
+  const area=document.getElementById('profile-area');
+  if(!area.contains(e.target)){
+    document.getElementById('profile-dropdown').classList.remove('show');
+  } else {
+    setTimeout(()=>document.addEventListener('click',closeProfileOutside,{once:true}),0);
+  }
+}
+
+async function handleSignedIn(session){
+  authToken=session.access_token;
+  document.getElementById('auth-panel').style.display='none';
+  document.getElementById('auth-loading').classList.add('hidden');
+  updateProfileUI(session.user);
+  loadLocalWords();
+  try{
+    await loadWordsFromAPI();
+  }catch(e){console.warn('API load failed, using local cache',e);}
+  build();uCounts();rCard();
+  setTab('flash');
+}
+
+function handleSignedOut(){
+  authToken=null;
+  currentUser=null;
+  words=[];
+  localStorage.removeItem('vv2_words');
+  document.getElementById('auth-panel').style.display='flex';
+  document.getElementById('profile-area').classList.add('hidden');
+  document.getElementById('profile-dropdown').classList.remove('show');
+  build();uCounts();rCard();
+}
+
+async function logoutUser(){
+  document.getElementById('profile-dropdown').classList.remove('show');
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(e){console.error('Logout error:',e);}
+  handleSignedOut();
+}
+
+// ── SAMPLE WORDS LOADER ──
+async function loadSampleWords(){
+  const btn=document.querySelector('.starter-btn');
+  if(btn){btn.textContent='Loading...';btn.disabled=true;}
+  const existingLower=new Set(words.map(w=>w.word.toLowerCase().trim()));
+  let added=0;
+  SAMPLE_WORDS.forEach(w=>{
+    const wl=w.word.toLowerCase().trim();
+    if(!existingLower.has(wl)){
+      words.push({word:w.word,def:w.def,ex:w.ex||'',trick:w.trick||'',cat:'none'});
+      existingLower.add(wl);added++;
+    }
+  });
+  localStorage.setItem('vv2_words',JSON.stringify(words));
+  if(authToken) await persistUnsyncedWords();
+  build();uCounts();rCard();
+  if(btn){btn.textContent='Loaded!';}
+  setTab('flash');
+}
+
+// ── INITIALIZATION ──
 window.addEventListener('load',async ()=>{
+  // Check if this is an OAuth redirect (hash contains access_token)
+  const hashHasToken=window.location.hash.includes('access_token');
+  if(hashHasToken){
+    document.getElementById('auth-loading').classList.remove('hidden');
+    document.getElementById('auth-panel').style.display='none';
+  }
+
   try {
     await initSupabaseClient();
   } catch (err) {
     console.error('Supabase init failed:', err);
+    document.getElementById('auth-loading').classList.add('hidden');
     document.getElementById('auth-panel').style.display='none';
     alert('Unable to initialize Supabase. Check site configuration.');
     return;
   }
 
-  loadLocalWords();
-  build();uCounts();rCard();
-
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  authToken=session?.access_token || localStorage.getItem('auth_token');
-  if(session?.access_token) localStorage.setItem('auth_token',authToken);
-
-  if(authToken){
-    try {
-      await loadWordsFromAPI();
-      document.getElementById('auth-panel').style.display='none';
-      build();uCounts();rCard();
-      setTab('flash');
-      return;
-    } catch (err) {
-      console.warn('Failed to load remote words, using local cache', err);
+  // Listen for auth state changes (handles OAuth redirects, token refresh, etc.)
+  supabaseClient.auth.onAuthStateChange(async (event, session)=>{
+    if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'){
+      if(session){
+        authToken=session.access_token;
+      }
+    } else if(event==='SIGNED_OUT'){
+      handleSignedOut();
     }
-  }
+  });
 
-  if(words.length){
-    document.getElementById('auth-panel').style.display='none';
-    build();uCounts();rCard();
-    setTab('flash');
+  // Check for existing session
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(session?.access_token){
+    await handleSignedIn(session);
   } else {
+    // No session — show auth panel
+    document.getElementById('auth-loading').classList.add('hidden');
     document.getElementById('auth-panel').style.display='flex';
   }
 });
@@ -1674,12 +1842,7 @@ async function loginUser(){
   try{
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if(error) throw error;
-    authToken=data.session.access_token;
-    localStorage.setItem('auth_token',authToken);
-    document.getElementById('auth-panel').style.display='none';
-    await loadWordsFromAPI();
-    build();uCounts();rCard();
-    setTab('flash');
+    await handleSignedIn(data.session);
   }catch(e){alert('Login failed: '+(e.message||e));}
 }
 
@@ -1690,14 +1853,20 @@ async function registerUser(){
   try{
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if(error) throw error;
-    alert('Account created! Check your email and then log in.');
-    document.getElementById('auth-email').value='';
-    document.getElementById('auth-password').value='';
+    if(data.session){
+      // Auto-confirm enabled — sign in immediately
+      await handleSignedIn(data.session);
+    } else {
+      alert('Account created! Check your email to confirm, then log in.');
+      document.getElementById('auth-email').value='';
+      document.getElementById('auth-password').value='';
+    }
   }catch(e){alert('Registration failed: '+(e.message||e));}
 }
 
 async function signInWithGoogle(){
   try{
+    document.getElementById('auth-loading').classList.remove('hidden');
     const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -1705,7 +1874,9 @@ async function signInWithGoogle(){
       }
     });
     if(error) throw error;
+    // Browser will redirect to Google — loading overlay stays visible
   }catch(e){
+    document.getElementById('auth-loading').classList.add('hidden');
     alert('Google Sign-In Error: '+(e.message||e));
   }
 }
