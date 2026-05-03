@@ -20,6 +20,17 @@ const supabase = createClient(
   supabaseAnonKey
 );
 
+function getRequestSupabaseClient(token) {
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return createClient(
+    supabaseUrl,
+    supabaseServiceRoleKey || supabaseAnonKey,
+    !supabaseServiceRoleKey && token
+      ? { global: { headers: { Authorization: `Bearer ${token}` } } }
+      : undefined
+  );
+}
+
 // Debugging endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
@@ -40,6 +51,7 @@ const verifyToken = async (req, res, next) => {
     }
     
     req.user = user;
+    req.supabase = getRequestSupabaseClient(token);
     next();
   } catch (e) {
     console.error('Token verification error:', e);
@@ -60,7 +72,7 @@ app.get('/api/login', (req, res) => {
 // Get all words for user
 app.get('/api/words', verifyToken, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('words')
       .select('*')
       .eq('user_id', req.user.id)
@@ -83,7 +95,7 @@ app.post('/api/words', verifyToken, async (req, res) => {
     return res.status(400).json({ error: 'Word and definition required' });
   }
   try {
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('words')
       .insert([{ word, def, ex: ex || '', trick: trick || '', cat: cat || 'none', user_id: req.user.id }])
       .select();
@@ -101,7 +113,7 @@ app.post('/api/words', verifyToken, async (req, res) => {
 // Update word
 app.put('/api/words/:id', verifyToken, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await req.supabase
       .from('words')
       .update(req.body)
       .eq('id', req.params.id)
@@ -121,7 +133,7 @@ app.put('/api/words/:id', verifyToken, async (req, res) => {
 // Delete word
 app.delete('/api/words/:id', verifyToken, async (req, res) => {
   try {
-    const { error } = await supabase
+    const { error } = await req.supabase
       .from('words')
       .delete()
       .eq('id', req.params.id)

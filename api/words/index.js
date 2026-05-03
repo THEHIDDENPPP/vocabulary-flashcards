@@ -1,18 +1,22 @@
 const { createClient } = require('@supabase/supabase-js');
 
-function getSupabaseClient() {
+function getSupabaseClient(accessToken) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase credentials not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.');
   }
   return createClient(
     supabaseUrl,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey
+    supabaseServiceRoleKey || supabaseAnonKey,
+    !supabaseServiceRoleKey && accessToken
+      ? { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
+      : undefined
   );
 }
 
-async function verifyToken(req, res, supabase) {
+async function verifyToken(req, res) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
     res.status(403).json({ error: 'Token required' });
@@ -20,13 +24,14 @@ async function verifyToken(req, res, supabase) {
   }
 
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  const supabase = getSupabaseClient();
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data?.user) {
     res.status(401).json({ error: 'Invalid token', details: error?.message });
     return null;
   }
 
-  return data.user;
+  return { user: data.user, token };
 }
 
 module.exports = async (req, res) => {
@@ -35,9 +40,10 @@ module.exports = async (req, res) => {
       return res.status(200).send('OK');
     }
 
-    const supabase = getSupabaseClient();
-    const user = await verifyToken(req, res, supabase);
-    if (!user) return;
+    const verified = await verifyToken(req, res);
+    if (!verified) return;
+    const { user, token } = verified;
+    const supabase = getSupabaseClient(token);
 
     if (req.method === 'GET') {
       const { data, error } = await supabase

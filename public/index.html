@@ -493,12 +493,19 @@ const API_URL='/api';
 async function loadWordsFromAPI(){
   if(!authToken) return;
   try{
+    const localBeforeLoad=[...words];
     const res=await fetch(API_URL+'/words',{
       headers:{'Authorization':`Bearer ${authToken}`}
     });
     if(res.ok) {
-      words=await res.json();
+      const remoteWords=await res.json();
+      const remoteLower=new Set(remoteWords.map(w=>(w.word||'').toLowerCase().trim()));
+      const unsyncedLocal=localBeforeLoad.filter(w=>
+        !w.id && w.word && w.def && !remoteLower.has((w.word||'').toLowerCase().trim())
+      );
+      words=[...remoteWords,...unsyncedLocal];
       localStorage.setItem('vv2_words',JSON.stringify(words));
+      if(unsyncedLocal.length) await persistUnsyncedWords();
     } else {
       console.warn('Failed to load words from API', res.status);
     }
@@ -527,6 +534,16 @@ async function saveWordToAPI(word){
     if(saved?.id) word.id=saved.id;
     return saved;
   }catch(e){console.error(e);return null;}
+}
+
+async function persistUnsyncedWords(){
+  if(!authToken) return true;
+  const pending=words.filter(w=>!w.id && w.word && w.def);
+  if(!pending.length) return true;
+
+  const results=await Promise.all(pending.map(w=>saveWordToAPI(w)));
+  localStorage.setItem('vv2_words',JSON.stringify(words));
+  return results.every(Boolean);
 }
 
 async function updateWordToAPI(word){
@@ -567,7 +584,7 @@ let qq=[],qi=0,qc=0,qw2=0,qa=false;
 function save(){
   localStorage.setItem('vv2_words',JSON.stringify(words));
   if(authToken) {
-    words.filter(w=>!w.id).forEach(saveWordToAPI);
+    persistUnsyncedWords();
   }
 }
 
@@ -1085,9 +1102,13 @@ function toggleSelectAll(){
     if(cb)cb.checked=!allOn;
   });
 }
-function addExtractedWords(){
+async function addExtractedWords(){
   const toAdd=extractedWords.filter(w=>w.selected);
   if(!toAdd.length){alert('Select at least one word to add.');return;}
+  const addBtn=document.getElementById('imp-add-btn');
+  const prevText=addBtn.textContent;
+  addBtn.disabled=true;
+  addBtn.textContent='Saving...';
   const existingLower=new Set(words.map(w=>w.word.toLowerCase().trim()));
   let added=0;
   toAdd.forEach(w=>{
@@ -1100,7 +1121,15 @@ function addExtractedWords(){
       if(ex){if(!ex.ex&&w.ex)ex.ex=w.ex;if(!ex.trick&&w.trick)ex.trick=w.trick;}
     }
   });
-  save();uCounts();build();
+  localStorage.setItem('vv2_words',JSON.stringify(words));
+  const savedOk=await persistUnsyncedWords();
+  addBtn.disabled=false;
+  addBtn.textContent=prevText;
+  if(!savedOk){
+    alert('The words were added locally, but some could not be saved to your profile. Check your connection and try again before refreshing.');
+    return;
+  }
+  uCounts();build();
   document.getElementById('imp-preview-overlay').classList.add('hidden');
   extractedWords=[];
   setTab('manage');rList();
@@ -1613,7 +1642,10 @@ window.addEventListener('load',async ()=>{
   loadLocalWords();
   build();uCounts();rCard();
 
-  authToken=localStorage.getItem('auth_token');
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  authToken=session?.access_token || localStorage.getItem('auth_token');
+  if(session?.access_token) localStorage.setItem('auth_token',authToken);
+
   if(authToken){
     try {
       await loadWordsFromAPI();
@@ -1678,23 +1710,6 @@ async function signInWithGoogle(){
   }
 }
 
-// Handle OAuth callback on page load
-(async ()=>{
-  try {
-    if (!supabaseClient) await initSupabaseClient();
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-    if(session){
-      authToken=session.access_token;
-      localStorage.setItem('auth_token',authToken);
-      document.getElementById('auth-panel').style.display='none';
-      await loadWordsFromAPI();
-      build();uCounts();rCard();
-      setTab('flash');
-    }
-  } catch (err) {
-    console.error('OAuth callback init failed:', err);
-  }
-})();
 </script>
 </body>
 </html>
