@@ -28,7 +28,7 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .fbtn.f-known.on{border-color:var(--green);color:var(--green);background:rgba(76,175,125,.08)}
 .fbtn.f-somewhat.on{border-color:var(--yellow);color:var(--yellow);background:rgba(232,200,74,.08)}
 .fbtn.f-unknown.on{border-color:var(--red);color:var(--red);background:rgba(224,90,74,.08)}
-.fbtn.f-hard.on{border-color:var(--hard-b);color:var(--hard);background:rgba(92,63,118,.12)}
+.fbtn.f-hard.on{border-color:var(--hard-b);color:#9b7bc0;background:rgba(92,63,118,.12)}
 .fc{font-size:.55rem;opacity:.7;margin-left:2px}
 /* PROGRESS */
 .pw{width:100%;max-width:500px;margin-bottom:3px}
@@ -67,7 +67,7 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .catbtn.known{border-color:var(--known-b);color:var(--green)}
 .catbtn.somewhat{border-color:var(--somewhat-b);color:var(--yellow)}
 .catbtn.unknown{border-color:var(--unknown-b);color:var(--red)}
-.catbtn.hard{border-color:var(--hard-b);color:var(--hard)}
+.catbtn.hard{border-color:var(--hard-b);color:#9b7bc0}
 .catbtn.known:hover,.catbtn.sel-known{background:var(--known)}
 .catbtn.somewhat:hover,.catbtn.sel-somewhat{background:var(--somewhat)}
 .catbtn.unknown:hover,.catbtn.sel-unknown{background:var(--unknown)}
@@ -107,7 +107,7 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .wic.known{background:var(--known);color:var(--green);border:1px solid var(--known-b)}
 .wic.somewhat{background:var(--somewhat);color:var(--yellow);border:1px solid var(--somewhat-b)}
 .wic.unknown{background:var(--unknown);color:var(--red);border:1px solid var(--unknown-b)}
-.wic.hard{background:var(--hard);color:var(--accent);border:1px solid var(--hard-b)}
+.wic.hard{background:var(--hard);color:#9b7bc0;border:1px solid var(--hard-b)}
 .wic.none{background:var(--border);color:var(--muted);border:1px solid var(--border2)}
 .wia{display:flex;gap:3px;flex-shrink:0}
 .ibtn{font-size:.72rem;border:1px solid var(--border2);background:transparent;color:var(--muted);width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
@@ -133,7 +133,8 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .hidden{display:none!important}
 
 /* ── IMPORT TAB ── */
-.imp-tab{color:var(--accent)!important;border-left:1px solid var(--border2)}
+.imp-tab{color:var(--accent);border-left:1px solid var(--border2)}
+.tab.imp-tab.active{color:var(--bg)!important}
 .imp-wrap{width:100%;max-width:500px}
 .imp-hero{text-align:center;margin-bottom:22px;padding:20px 0 10px}
 .imp-icon{font-size:2rem;color:var(--accent);margin-bottom:8px;animation:pulse 2.5s ease-in-out infinite}
@@ -209,6 +210,12 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
 .starter-sub{font-size:.68rem;color:var(--muted);line-height:1.6;margin-bottom:16px}
 .starter-btn{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--accent);background:rgba(232,168,56,.08);color:var(--accent);padding:10px 20px;cursor:pointer;transition:all .15s;border-radius:4px}
 .starter-btn:hover{background:var(--accent);color:var(--bg)}
+/* SYNC INDICATOR */
+.sync-indicator{position:fixed;bottom:12px;right:12px;font-size:.6rem;letter-spacing:.06em;padding:5px 10px;border-radius:4px;z-index:50;transition:all .3s ease;opacity:0;transform:translateY(8px);pointer-events:none}
+.sync-indicator.show{opacity:1;transform:translateY(0)}
+.sync-indicator.saving{background:rgba(232,168,56,.15);border:1px solid rgba(232,168,56,.3);color:var(--accent)}
+.sync-indicator.saved{background:rgba(76,175,125,.12);border:1px solid rgba(76,175,125,.3);color:var(--green)}
+.sync-indicator.error{background:rgba(224,90,74,.12);border:1px solid rgba(224,90,74,.3);color:var(--red);pointer-events:auto;cursor:pointer}
 /* AUTH LOADING */
 .auth-loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1001;gap:16px}
 .auth-loading .imp-spinner{width:40px;height:40px}
@@ -264,6 +271,7 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
     </div>
   </div>
 </div>
+<div class="sync-indicator" id="sync-indicator"></div>
 <div class="app">
 <header>
   <div class="logo">Vocab<span>Vault</span></div>
@@ -430,7 +438,11 @@ header{text-align:center;margin-bottom:18px;padding-top:4px}
     <div class="imp-preview-list" id="imp-preview-list"></div>
     <div class="imp-preview-actions">
       <button class="mbtn c" onclick="document.getElementById('imp-preview-overlay').classList.add('hidden')">Cancel</button>
-      <button class="mbtn p" id="imp-add-btn" onclick="addExtractedWords()">Add All to Library</button>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.65rem;color:var(--muted);letter-spacing:.06em;user-select:none;">
+        <input type="checkbox" id="imp-select-all" checked onchange="toggleSelectAll(this.checked)" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer;"/>
+        Select All
+      </label>
+      <button class="mbtn p" id="imp-add-btn" onclick="addExtractedWords()">Add Selected to Library</button>
     </div>
   </div>
 </div>
@@ -552,7 +564,100 @@ let authToken=null;
 let currentUser=null;
 const API_URL='/api';
 
-// Load words from API
+// ── SYNC INDICATOR ──
+let syncHideTimer=null;
+function showSync(state, msg){
+  const el=document.getElementById('sync-indicator');
+  if(!el) return;
+  el.className='sync-indicator show '+state;
+  el.textContent=msg;
+  el.onclick=state==='error' ? retrySyncQueue : null;
+  clearTimeout(syncHideTimer);
+  if(state!=='error') syncHideTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ── SYNC QUEUE — reliable category & word update persistence ──
+let syncQueue=[];  // [{id, cat, word, def, ex, trick, retries}]
+let syncRunning=false;
+
+function queueSync(wordObj){
+  if(!wordObj?.id) return;
+  // Dedupe: replace existing entry for same id
+  syncQueue = syncQueue.filter(q=>q.id !== wordObj.id);
+  syncQueue.push({
+    id: wordObj.id,
+    cat: wordObj.cat || 'none',
+    word: wordObj.word,
+    def: wordObj.def,
+    ex: wordObj.ex || '',
+    trick: wordObj.trick || '',
+    retries: 0
+  });
+  localStorage.setItem('vv2_syncQueue', JSON.stringify(syncQueue));
+  processSyncQueue();
+}
+
+function loadSyncQueue(){
+  try{
+    const saved=localStorage.getItem('vv2_syncQueue');
+    if(saved) syncQueue=JSON.parse(saved)||[];
+  }catch(e){ syncQueue=[]; }
+}
+
+async function processSyncQueue(){
+  if(syncRunning || !authToken || syncQueue.length===0) return;
+  syncRunning=true;
+  showSync('saving','Syncing…');
+
+  const failed=[];
+  while(syncQueue.length>0){
+    const item=syncQueue.shift();
+    try{
+      const res=await fetch(`${API_URL}/words/${item.id}`,{
+        method:'PUT',
+        headers:{
+          'Authorization':`Bearer ${authToken}`,
+          'Content-Type':'application/json'
+        },
+        body:JSON.stringify({
+          word: item.word,
+          def: item.def,
+          ex: item.ex || '',
+          trick: item.trick || '',
+          cat: item.cat || 'none'
+        })
+      });
+      if(!res.ok){
+        item.retries=(item.retries||0)+1;
+        if(item.retries<=5) failed.push(item);
+        console.warn(`Sync failed for word ${item.id}, attempt ${item.retries}`);
+      }
+    }catch(e){
+      item.retries=(item.retries||0)+1;
+      if(item.retries<=5) failed.push(item);
+      console.warn('Sync error:', e.message);
+    }
+  }
+
+  syncQueue=failed;
+  localStorage.setItem('vv2_syncQueue', JSON.stringify(syncQueue));
+  syncRunning=false;
+
+  if(failed.length>0){
+    showSync('error','Sync failed — tap to retry');
+    // Auto-retry after 10 seconds
+    setTimeout(()=>processSyncQueue(), 10000);
+  } else {
+    showSync('saved','✓ Saved');
+  }
+}
+
+function retrySyncQueue(){
+  syncQueue.forEach(q=>q.retries=0);
+  processSyncQueue();
+}
+
+// ── LOAD WORDS FROM API (remote = source of truth) ──
 async function loadWordsFromAPI(){
   if(!authToken) return;
   try{
@@ -562,20 +667,40 @@ async function loadWordsFromAPI(){
     });
     if(res.ok) {
       const remoteWords=await res.json();
+
+      // Apply any pending sync queue items on top of remote data
+      // (these are changes made locally that haven't been pushed yet)
+      const pendingChanges=new Map(syncQueue.map(q=>[q.id, q]));
+      remoteWords.forEach(w=>{
+        if(pendingChanges.has(w.id)){
+          const pending=pendingChanges.get(w.id);
+          w.cat=pending.cat;
+          if(pending.word) w.word=pending.word;
+          if(pending.def) w.def=pending.def;
+          if(pending.ex) w.ex=pending.ex;
+          if(pending.trick) w.trick=pending.trick;
+        }
+      });
+
+      // Find truly unsynced local words (no id, not on server)
       const remoteLower=new Set(remoteWords.map(w=>(w.word||'').toLowerCase().trim()));
       const unsyncedLocal=localBeforeLoad.filter(w=>
         !w.id && w.word && w.def && !remoteLower.has((w.word||'').toLowerCase().trim())
       );
+
       words=[...remoteWords,...unsyncedLocal];
       localStorage.setItem('vv2_words',JSON.stringify(words));
       if(unsyncedLocal.length) await persistUnsyncedWords();
+
+      // Process any pending sync queue
+      if(syncQueue.length>0) processSyncQueue();
     } else {
       console.warn('Failed to load words from API', res.status);
     }
   }catch(e){console.error(e);}
 }
 
-// Save word to API
+// Save NEW word to API (no id yet)
 async function saveWordToAPI(word){
   if(!authToken || word.id) return null;
   try{
@@ -603,35 +728,26 @@ async function persistUnsyncedWords(){
   if(!authToken) return true;
   const pending=words.filter(w=>!w.id && w.word && w.def);
   if(!pending.length) return true;
-
+  showSync('saving','Saving new words…');
   const results=await Promise.all(pending.map(w=>saveWordToAPI(w)));
   localStorage.setItem('vv2_words',JSON.stringify(words));
-  return results.every(Boolean);
+  const allOk=results.every(Boolean);
+  if(allOk) showSync('saved','✓ Saved');
+  else showSync('error','Some words failed to save — tap to retry');
+  return allOk;
 }
 
-async function updateWordToAPI(word){
-  if(!authToken || !word?.id) return null;
-  try{
-    const res=await fetch(`${API_URL}/words/${word.id}`,{
-      method:'PUT',
-      headers:{
-        'Authorization':`Bearer ${authToken}`,
-        'Content-Type':'application/json'
-      },
-      body:JSON.stringify({
-        word: word.word,
-        def: word.def,
-        ex: word.ex || '',
-        trick: word.trick || '',
-        cat: word.cat || 'none'
-      })
-    });
-    return res.ok?await res.json():null;
-  }catch(e){console.error(e);return null;}
+// Update existing word via sync queue (reliable)
+function updateWordToAPI(word){
+  if(!authToken || !word?.id) return;
+  queueSync(word);
 }
 
 async function deleteWordFromAPI(id){
   if(!authToken || !id) return false;
+  // Remove from sync queue if pending
+  syncQueue=syncQueue.filter(q=>q.id!==id);
+  localStorage.setItem('vv2_syncQueue', JSON.stringify(syncQueue));
   try{
     const res=await fetch(`${API_URL}/words/${id}`,{
       method:'DELETE',
@@ -642,6 +758,7 @@ async function deleteWordFromAPI(id){
 }
 
 let filter='all',tab='flash',fw=[],fi=0,flipped=false,editIdx=null;
+let reviewedCount=0,sessionTotal=0;
 let qq=[],qi=0,qc=0,qw2=0,qa=false;
 
 function save(){
@@ -670,8 +787,10 @@ function setFilter(f){
   document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
   document.querySelector('.f-'+f).classList.add('on');
   fi=0;flipped=false;
+  reviewedCount=0;
   document.getElementById('cw').classList.remove('flipped');
   build();
+  sessionTotal=fw.length;
   if(tab==='flash')rCard();
   if(tab==='quiz')iQuiz();
   uCounts();
@@ -710,7 +829,7 @@ function setTab(t){
   const showFilter=t!=='manage'&&t!=='import';
   document.getElementById('fbar').classList.toggle('hidden',!showFilter);
   document.getElementById('pwrap').classList.toggle('hidden',!showFilter);
-  if(t==='flash'){build();rCard();}
+  if(t==='flash'){build();sessionTotal=fw.length;reviewedCount=0;rCard();}
   if(t==='quiz'){build();iQuiz();}
   if(t==='manage')rList();
 }
@@ -725,8 +844,14 @@ function rCard(){
     document.getElementById('be').textContent='';
     document.getElementById('bt').textContent='';
     document.getElementById('nc').textContent='0/0';
-    document.getElementById('pfill').style.width='0%';
-    document.getElementById('plabel').textContent='0/0';
+    // Show completed progress if we reviewed all cards
+    if(sessionTotal>0 && reviewedCount>=sessionTotal){
+      document.getElementById('pfill').style.width='100%';
+      document.getElementById('plabel').textContent=`${reviewedCount} of ${sessionTotal} reviewed ✓`;
+    } else {
+      document.getElementById('pfill').style.width='0%';
+      document.getElementById('plabel').textContent='0 / 0';
+    }
     return;
   }
   document.getElementById('fw').textContent=w.word;
@@ -735,8 +860,11 @@ function rCard(){
   document.getElementById('be').textContent=w.ex||'—';
   document.getElementById('bt').textContent=w.trick||'—';
   document.getElementById('nc').textContent=`${fi+1}/${n}`;
-  document.getElementById('pfill').style.width=((fi+1)/n*100)+'%';
-  document.getElementById('plabel').textContent=`${fi+1} of ${n} cards`;
+  // Progress bar tracks reviewed count vs session total
+  const total=Math.max(sessionTotal,n);
+  const progress=Math.min(reviewedCount/total*100,100);
+  document.getElementById('pfill').style.width=progress+'%';
+  document.getElementById('plabel').textContent=`${reviewedCount} of ${total} reviewed`;
   document.getElementById('pb').disabled=fi===0;
   document.getElementById('nb2').disabled=fi===n-1;
   const ids = {known:'ck',somewhat:'cs',hard:'ch',unknown:'cu'};
@@ -756,19 +884,30 @@ function mark(cat){
     if(words[gi].id) updateWordToAPI(words[gi]);
     save();uCounts();
 
+    // Increment reviewed count
+    reviewedCount++;
+
     document.getElementById('cw').classList.remove('flipped');
     flipped=false;
 
-    const removed = fw.splice(fi,1)[0];
-    if(cat==='known'){
+    if(filter!=='all' || cat==='known'){
+      // Remove from filtered view (or remove known cards from 'all')
+      fw.splice(fi,1);
       if(fi>=fw.length) fi = Math.max(0, fw.length-1);
     } else if(cat==='somewhat'){
-      const insertPos = Math.min(fi+1, fw.length);
-      fw.splice(insertPos,0, removed);
+      // Move somewhat cards a bit ahead to review soon
+      const removed = fw.splice(fi,1)[0];
+      const insertPos = Math.min(fi + 3, fw.length);
+      fw.splice(insertPos, 0, removed);
+      // Stay at current fi to show next card
     } else if(cat==='hard'){
-      const insertPos = Math.min(fi+2, fw.length);
-      fw.splice(insertPos,0, removed);
+      // Move hard cards further ahead
+      const removed = fw.splice(fi,1)[0];
+      const insertPos = Math.min(fi + 5, fw.length);
+      fw.splice(insertPos, 0, removed);
     } else {
+      // Unknown/review: move to end
+      const removed = fw.splice(fi,1)[0];
       fw.push(removed);
     }
 
@@ -872,6 +1011,7 @@ function saveW(){
     words.push({word,def,ex:document.getElementById('mex').value.trim(),trick:document.getElementById('mtr').value.trim(),cat:'none'});
   }
   save();uCounts();closeM();rList();build();
+  sessionTotal=fw.length;reviewedCount=0;
   if(tab==='flash')rCard();
 }
 
@@ -1157,7 +1297,7 @@ function showPreview(wds,filename){
     const isDupe=dupeSet.has((w.word||'').toLowerCase().trim());
     if(isDupe)extractedWords[i].selected=false;
     return `<div class="imp-pword">
-      <input type="checkbox" class="imp-pword-check" id="pc-${i}" ${isDupe?'':'checked'} onchange="extractedWords[${i}].selected=this.checked"/>
+      <input type="checkbox" class="imp-pword-check" id="pc-${i}" ${isDupe?'':'checked'} onchange="extractedWords[${i}].selected=this.checked;syncSelectAll()"/>
       <div class="imp-pword-info">
         <div class="imp-pword-w">${w.word||''}${isDupe?'<span class="imp-pword-dup">already exists</span>':''}</div>
         <div class="imp-pword-d">${w.def||''}</div>
@@ -1167,18 +1307,22 @@ function showPreview(wds,filename){
   }).join('');
 
   document.getElementById('imp-preview-overlay').classList.remove('hidden');
+  syncSelectAll();
 }
 function closeImpPreview(e){
   if(e.target===document.getElementById('imp-preview-overlay'))
     document.getElementById('imp-preview-overlay').classList.add('hidden');
 }
-function toggleSelectAll(){
-  const allOn=extractedWords.every(w=>w.selected);
+function toggleSelectAll(checked){
   extractedWords.forEach((w,i)=>{
-    w.selected=!allOn;
+    w.selected=checked;
     const cb=document.getElementById('pc-'+i);
-    if(cb)cb.checked=!allOn;
+    if(cb)cb.checked=checked;
   });
+}
+function syncSelectAll(){
+  const sa=document.getElementById('imp-select-all');
+  if(sa) sa.checked=extractedWords.every(w=>w.selected);
 }
 async function addExtractedWords(){
   const toAdd=extractedWords.filter(w=>w.selected);
@@ -1748,10 +1892,11 @@ async function handleSignedIn(session){
   document.getElementById('auth-loading').classList.add('hidden');
   updateProfileUI(session.user);
   loadLocalWords();
+  loadSyncQueue();
   try{
     await loadWordsFromAPI();
   }catch(e){console.warn('API load failed, using local cache',e);}
-  build();uCounts();rCard();
+  build();sessionTotal=fw.length;reviewedCount=0;uCounts();rCard();
   setTab('flash');
 }
 
@@ -1759,7 +1904,9 @@ function handleSignedOut(){
   authToken=null;
   currentUser=null;
   words=[];
+  syncQueue=[];
   localStorage.removeItem('vv2_words');
+  localStorage.removeItem('vv2_syncQueue');
   document.getElementById('auth-panel').style.display='flex';
   document.getElementById('profile-area').classList.add('hidden');
   document.getElementById('profile-dropdown').classList.remove('show');
@@ -1789,7 +1936,7 @@ async function loadSampleWords(){
   });
   localStorage.setItem('vv2_words',JSON.stringify(words));
   if(authToken) await persistUnsyncedWords();
-  build();uCounts();rCard();
+  build();sessionTotal=fw.length;reviewedCount=0;uCounts();rCard();
   if(btn){btn.textContent='Loaded!';}
   setTab('flash');
 }
@@ -1880,6 +2027,32 @@ async function signInWithGoogle(){
     alert('Google Sign-In Error: '+(e.message||e));
   }
 }
+
+// ── BEFOREUNLOAD: ensure pending sync queue is persisted ──
+window.addEventListener('beforeunload', ()=>{
+  // Sync queue is already in localStorage, but ensure it's up to date
+  if(syncQueue.length>0){
+    localStorage.setItem('vv2_syncQueue', JSON.stringify(syncQueue));
+  }
+});
+
+// ── VISIBILITY CHANGE: re-sync when user returns to tab ──
+document.addEventListener('visibilitychange', async ()=>{
+  if(document.visibilityState==='visible' && authToken){
+    // Process any pending sync queue first
+    if(syncQueue.length>0) processSyncQueue();
+    // Then refresh from server to get latest data
+    try{
+      await loadWordsFromAPI();
+      build();rCard();uCounts();
+    }catch(e){console.warn('Visibility sync failed:',e);}
+  }
+});
+
+// ── PERIODIC SYNC: retry pending every 30 seconds ──
+setInterval(()=>{
+  if(authToken && syncQueue.length>0) processSyncQueue();
+}, 30000);
 
 </script>
 </body>
